@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ vehicle.bosch_vin }} | Vehicle Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4 py-4">
+    <!-- Breadcrumb & Top Bar -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('tracking.list_vehicles') }}" class="text-decoration-none">Fleet Tracking</a></li>
+                    <li class="breadcrumb-item active font-monospace">{{ vehicle.bosch_vin }}</li>
+                </ol>
+            </nav>
+            <div class="d-flex align-items-baseline gap-2">
+                <h3 class="fw-bold mb-0 text-dark font-monospace">{{ vehicle.bosch_vin }}</h3>
+                <span class="text-muted">&bull;</span>
+                <h5 class="mb-0 text-secondary">{{ vehicle.oem }} {{ vehicle.vehicle_name }}</h5>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newHopModal">
+                <i class="bi bi-plus me-1"></i> Log Movement Hop
+            </button>
+            <a href="{{ url_for('data_manager.edit_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pencil me-1"></i> Edit Data
+            </a>
+            <a href="{{ url_for('tracking.list_vehicles') }}" class="btn btn-sm btn-outline-secondary">
+                Back to Fleet
+            </a>
+        </div>
+    </div>
+
+    <!-- Clean Status Strip -->
+    <div class="card border rounded-3 bg-white p-3 mb-4 shadow-sm">
+        <div class="row align-items-center g-3 text-sm">
+            <div class="col-md-3">
+                <span class="text-muted small d-block">Current Location</span>
+                <span class="badge-subtle badge-subtle-primary fs-6">{{ vehicle.current_location }}</span>
+            </div>
+            <div class="col-md-3">
+                <span class="text-muted small d-block">Current Status</span>
+                <span class="badge-subtle badge-subtle-secondary fs-6">{{ vehicle.current_status }}</span>
+            </div>
+            <div class="col-md-3">
+                <span class="text-muted small d-block">Lifecycle Hops</span>
+                <span class="fw-bold font-monospace">{{ movements|length }} recorded</span>
+            </div>
+            <div class="col-md-3">
+                <span class="text-muted small d-block">Start Point (Genesis Receipt)</span>
+                <span class="fw-semibold text-dark">{{ vehicle.receiving_location or 'BOSCH PLANT' }}</span>
+                <span class="text-muted font-monospace small">({{ vehicle.incoming_date or 'N/A' }})</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main 2-Column Layout -->
+    <div class="row g-4">
+        <!-- Left: Full 25 Fields Specification -->
+        <div class="col-lg-5">
+            <div class="card border rounded-3 bg-white shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">Vehicle Master Attributes</h6>
+                    <span class="text-muted small font-monospace">SR #{{ vehicle.sr_no or vehicle.id }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm clean-table mb-0">
+                        <tbody>
+                            <!-- Identification -->
+                            <tr class="table-light"><td colspan="2" class="fw-bold text-muted small text-uppercase py-2 px-3">1. Identification</td></tr>
+                            <tr><td class="text-muted px-3" style="width: 45%;">Bosch Vehicle ID:</td><td class="font-monospace fw-bold px-3">{{ vehicle.bosch_vin }}</td></tr>
+                            <tr><td class="text-muted px-3">OEM:</td><td class="px-3">{{ vehicle.oem }}</td></tr>
+                            <tr><td class="text-muted px-3">Vehicle Name:</td><td class="fw-semibold px-3">{{ vehicle.vehicle_name }}</td></tr>
+                            <tr><td class="text-muted px-3">OEM Identification No:</td><td class="font-monospace px-3">{{ vehicle.oem_id_no or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Type:</td><td class="px-3">{{ vehicle.vehicle_type or 'PP' }}</td></tr>
+                            <tr><td class="text-muted px-3">Chassis No:</td><td class="font-monospace px-3">{{ vehicle.chassis_no or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Owner:</td><td class="px-3">{{ vehicle.owner or '-' }}</td></tr>
+
+                            <!-- Logistics & Start Points -->
+                            <tr class="table-light"><td colspan="2" class="fw-bold text-muted small text-uppercase py-2 px-3">2. Logistics &amp; Start Points</td></tr>
+                            <tr><td class="text-muted px-3">Receiving Location (Start Point):</td><td class="fw-bold px-3 text-dark">{{ vehicle.receiving_location or 'BOSCH PLANT' }}</td></tr>
+                            <tr><td class="text-muted px-3">Incoming Date (Start):</td><td class="font-monospace px-3">{{ vehicle.incoming_date or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Outgoing Location:</td><td class="px-3">{{ vehicle.outgoing_location or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Outgoing Date:</td><td class="font-monospace px-3">{{ vehicle.outgoing_date or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Incoming Date 2:</td><td class="font-monospace px-3">{{ vehicle.incoming_date2 or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Date Sent to Customer:</td><td class="font-monospace px-3">{{ vehicle.date_sent_to_customer or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Bosch DC-1 / DC-2:</td><td class="font-monospace px-3">{{ vehicle.bosch_dc1 or '-' }} / {{ vehicle.bosch_dc2 or '-' }}</td></tr>
+
+                            <!-- Accessories & Quality -->
+                            <tr class="table-light"><td colspan="2" class="fw-bold text-muted small text-uppercase py-2 px-3">3. Equipment &amp; Quality</td></tr>
+                            <tr><td class="text-muted px-3">Materials Come With:</td><td class="small px-3">{{ vehicle.material_with_vehicle or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Spare Parts Link:</td><td class="small px-3">{{ vehicle.spare_parts_link or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">PDI Status:</td><td class="px-3">{{ vehicle.pdi_status or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">TPM Confirmation:</td><td class="px-3">{{ vehicle.tpm_confirmation or '-' }}</td></tr>
+                            {% if vehicle.vehicle_problem_issues %}
+                            <tr class="table-danger"><td class="text-danger fw-bold px-3">Issues:</td><td class="text-danger small px-3">{{ vehicle.vehicle_problem_issues }}</td></tr>
+                            {% endif %}
+                            <tr><td class="text-muted px-3">Remark:</td><td class="small px-3">{{ vehicle.remark or '-' }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Multi-Hop Timeline -->
+        <div class="col-lg-7">
+            <!-- Visual Path -->
+            <div class="card border rounded-3 bg-white shadow-sm mb-3">
+                <div class="card-header bg-white border-bottom py-2 px-3">
+                    <span class="fw-bold small text-muted text-uppercase">Journey Path</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        {% for m in movements %}
+                            <div class="d-flex align-items-center">
+                                <span class="badge-subtle {{ 'badge-subtle-success' if loop.first else 'badge-subtle-secondary' }} font-monospace">
+                                    #{{ m.hop_sequence }}: {{ m.destination_location }}
+                                </span>
+                                {% if not loop.last %}
+                                    <i class="bi bi-chevron-right text-muted mx-1 small"></i>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Hop History -->
+            <div class="card border rounded-3 bg-white shadow-sm">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">Movement Hop History</h6>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newHopModal">
+                        <i class="bi bi-plus me-1"></i> Add Hop
+                    </button>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="clean-timeline">
+                        {% for m in movements %}
+                        <div class="timeline-item">
+                            <div class="timeline-dot {{ 'start-dot' if loop.first else '' }}">
+                                {{ m.hop_sequence }}
+                            </div>
+
+                            <div class="timeline-box">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div>
+                                        <span class="fw-bold text-dark">{{ m.source_location }} &rarr; {{ m.destination_location }}</span>
+                                        {% if loop.first %}
+                                            <span class="badge-subtle badge-subtle-success ms-2 small">Start Point</span>
+                                        {% endif %}
+                                        <span class="badge-subtle badge-subtle-secondary ms-1 small">{{ m.status }}</span>
+                                    </div>
+                                    <div class="text-muted small font-monospace">
+                                        {{ m.arrival_date or m.dispatch_date or '' }}
+                                    </div>
+                                </div>
+
+                                <div class="small text-muted mb-1">
+                                    <strong>Purpose:</strong> {{ m.movement_purpose or 'Transfer' }}
+                                </div>
+
+                                {% if m.work_done %}
+                                <div class="small bg-light p-2 rounded text-secondary mb-1">
+                                    {{ m.work_done }}
+                                </div>
+                                {% endif %}
+
+                                <div class="d-flex justify-content-between align-items-center small text-muted mt-2 pt-1 border-top">
+                                    <div>
+                                        {% if m.dc_number %}
+                                            <span class="font-monospace">DC: {{ m.dc_number }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if movements|length > 1 and not loop.first %}
+                                    <form action="{{ url_for('tracking.delete_hop', vehicle_id=vehicle.id, hop_id=m.id) }}" method="POST" 
+                                          onsubmit="return confirm('Delete Hop #{{ m.hop_sequence }}?');">
+                                        <button type="submit" class="btn btn-link btn-sm text-muted p-0 text-decoration-none">
+                                            Delete
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Log Movement Hop -->
+<div class="modal fade" id="newHopModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-3">
+            <form action="{{ url_for('tracking.log_hop', vehicle_id=vehicle.id) }}" method="POST">
+                <div class="modal-header border-bottom py-3 px-4">
+                    <h6 class="modal-title fw-bold" id="newHopModalLabel">
+                        Log Hop for {{ vehicle.bosch_vin }}
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">From Location</label>
+                        <input type="text" name="source_location" class="form-control form-control-sm" value="{{ vehicle.current_location }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">To Location (Destination) *</label>
+                        <input type="text" name="destination_location" class="form-control form-control-sm" 
+                               placeholder="e.g. NATRAX, TATA MOTORS, BOSCH PLANT..." required list="knownLocsList">
+                        <datalist id="knownLocsList">
+                            {% for loc in known_locations %}
+                            <option value="{{ loc }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Dispatch Date</label>
+                            <input type="text" name="dispatch_date" class="form-control form-control-sm" placeholder="DD-Mon-YY">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Arrival Date</label>
+                            <input type="text" name="arrival_date" class="form-control form-control-sm" placeholder="DD-Mon-YY">
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Purpose</label>
+                            <input type="text" name="movement_purpose" class="form-control form-control-sm" placeholder="e.g. Track testing, Return">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">New Status</label>
+                            <input type="text" name="status" class="form-control form-control-sm" value="At Location">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Work Done</label>
+                        <textarea name="work_done" class="form-control form-control-sm" rows="2" placeholder="Details of work performed..."></textarea>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">DC / Pass No.</label>
+                            <input type="text" name="dc_number" class="form-control form-control-sm" placeholder="DC-XXXX">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Remarks</label>
+                            <input type="text" name="remarks" class="form-control form-control-sm" placeholder="Optional notes">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-2 px-4">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        Save Hop
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

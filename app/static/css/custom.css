@@ -1,0 +1,377 @@
+/* ==========================================================================
+   BOSCH VEHICLE TRACKING - CLEAN, MINIMAL & DISTRACTION-FREE DESIGN
+   Inspired by modern enterprise interfaces (Linear, GitHub, Stripe)
+   ========================================================================== */
+
+:root {
+    /* Muted, Calm Color Palette */
+    --bosch-red: #d91c24;
+    --navy-950: #090d16;
+    --navy-900: #0f172a;
+    --navy-800: #1e293b;
+    --slate-700: #334155;
+    --slate-600: #475569;
+    --slate-500: #64748b;
+    --slate-400: #94a3b8;
+    --slate-300: #cbd5e1;
+    --slate-200: #e2e8f0;
+    --slate-100: #f1f5f9;
+    --slate-50:  #f8fafc;
+
+    /* Theme Tokens */
+    --color-primary: #1e40af;
+    --color-primary-hover: #1d4ed8;
+    --color-surface-bg: #f8fafc;
+    --color-surface-card: #ffffff;
+    --color-border: #e2e8f0;
+    --color-border-subtle: #f1f5f9;
+    --color-text-main: #0f172a;
+    --color-text-muted: #64748b;
+
+    /* Fonts */
+    --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    /* Soft, realistic shadow */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+}
+
+body {
+    font-family: var(--font-body);
+    color: var(--color-text-main);
+    background-color: var(--color-surface-bg);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
+    color: var(--color-text-main);
+}
+
+.font-monospace {
+    font-family: var(--font-mono) !important;
+}
+
+/* Accessible focus visible without excessive glow */
+:where(a, button, input, select, textarea):focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* ==========================================================================
+   CLEAN TOP NAVBAR
+   ========================================================================== */
+
+.main-navbar {
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    padding-block: 0.6rem;
+}
+
+.brand-badge {
+    background: var(--bosch-red);
+    color: #ffffff;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+}
+
+.brand-title {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+}
+
+/* Calm, Clean Search Bar */
+.nav-search-group {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s ease;
+}
+
+.nav-search-group:focus-within {
+    border-color: #60a5fa;
+}
+
+.nav-search-icon {
+    background: transparent !important;
+    border: none !important;
+    color: var(--slate-400) !important;
+    padding-left: 10px;
+}
+
+.nav-search-input {
+    background: transparent !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-size: 0.875rem;
+    padding: 6px 8px;
+}
+
+.nav-search-input::placeholder {
+    color: var(--slate-400);
+}
+
+.nav-search-btn {
+    background: #334155;
+    color: #ffffff;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 4px !important;
+    margin: 3px;
+}
+
+.nav-search-btn:hover {
+    background: #475569;
+    color: #ffffff;
+}
+
+/* Calm Nav Links */
+.nav-pill-link {
+    color: var(--slate-300) !important;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 6px 12px !important;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-pill-link:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-pill-link.active {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+/* TV Stream Nav Link - Subdued & Tasteful */
+.btn-tv-nav {
+    background: transparent;
+    color: #cbd5e1 !important;
+    border: 1px solid #334155;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 5px 12px;
+    transition: all 0.15s ease;
+}
+
+.btn-tv-nav:hover {
+    background: #1e293b;
+    color: #ffffff !important;
+    border-color: #475569;
+}
+
+/* ==========================================================================
+   CALM STATUS DOT (NO BLINKING / PULSING)
+   ========================================================================== */
+
+.status-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.status-dot-active {
+    background-color: #10b981;
+}
+
+.status-dot-neutral {
+    background-color: #94a3b8;
+}
+
+.status-dot-warning {
+    background-color: #f59e0b;
+}
+
+.status-dot-danger {
+    background-color: #ef4444;
+}
+
+/* Clean, Muted Badges */
+.badge-subtle {
+    font-weight: 500;
+    font-size: 0.78rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+}
+
+.badge-subtle-primary {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #dbeafe;
+}
+
+.badge-subtle-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #e2e8f0;
+}
+
+.badge-subtle-success {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #d1fae5;
+}
+
+.badge-subtle-warning {
+    background: #fffbeb;
+    color: #b45309;
+    border-color: #fef3c7;
+}
+
+.badge-subtle-danger {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fee2e2;
+}
+
+/* ==========================================================================
+   MINIMAL STAT CARDS
+   ========================================================================== */
+
+.stat-card {
+    background: var(--color-surface-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 18px 20px;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-family: var(--font-heading);
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    line-height: 1.1;
+}
+
+/* ==========================================================================
+   CLEAN DATA TABLES
+   ========================================================================== */
+
+.clean-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.clean-table thead th {
+    background: #f8fafc;
+    color: var(--slate-600);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.clean-table tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    color: var(--color-text-main);
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+.clean-table tbody tr:hover td {
+    background-color: #f8fafc;
+}
+
+/* ==========================================================================
+   ELEGANT TIMELINE (MONOCHROME & STRUCTURED)
+   ========================================================================== */
+
+.clean-timeline {
+    position: relative;
+    padding-left: 28px;
+}
+
+.clean-timeline::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 12px;
+    left: 11px;
+    width: 2px;
+    background: #cbd5e1;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 18px;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -28px;
+    top: 2px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #334155;
+    z-index: 2;
+}
+
+.timeline-dot.start-dot {
+    border-color: #059669;
+    color: #059669;
+    background: #ecfdf5;
+}
+
+.timeline-box {
+    background: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ==========================================================================
+   CLEAN FOOTER
+   ========================================================================== */
+
+.main-footer {
+    background: #ffffff;
+    border-top: 1px solid var(--color-border);
+    padding-block: 14px;
+}

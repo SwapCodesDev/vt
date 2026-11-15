@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Import Vehicle Data | Bosch Vehicle Tracking{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Breadcrumbs -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-2 small">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('data_manager.index') }}" class="text-decoration-none">Data Manager</a></li>
+                    <li class="breadcrumb-item active fw-semibold">Import Data</li>
+                </ol>
+            </nav>
+
+            <div class="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden">
+                <div class="card-header bg-white border-0 py-3 px-4">
+                    <h4 class="fw-bold mb-0 text-dark">
+                        <i class="bi bi-file-earmark-excel text-success me-2"></i>Import Vehicle Master File
+                    </h4>
+                    <p class="text-muted small mb-0">Upload an Excel (.xlsx / .xls) or CSV file to update or populate the SQLite database.</p>
+                </div>
+
+                <div class="card-body p-4">
+                    <form action="{{ url_for('data_manager.import_data') }}" method="POST" enctype="multipart/form-data">
+                        <!-- File Upload Box -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-muted mb-2">Select Spreadsheet File *</label>
+                            <div class="p-4 border border-2 border-dashed rounded-4 text-center bg-light" style="border-color: #cbd5e1 !important;">
+                                <i class="bi bi-cloud-arrow-up-fill text-primary display-4 d-block mb-2 opacity-75"></i>
+                                <h6 class="fw-bold text-dark mb-1">Choose an Excel (.xlsx, .xls) or CSV file</h6>
+                                <p class="text-muted small mb-3">Ensure your spreadsheet contains columns matching the company specification.</p>
+                                <input type="file" name="file" class="form-control form-control-lg mx-auto" style="max-width: 420px;" accept=".xlsx, .xls, .csv" required>
+                            </div>
+                            <div class="form-text mt-2 text-muted">Maximum file size: 32MB. Header variations are normalized automatically.</div>
+                        </div>
+
+                        <!-- Import Mode Selection -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-muted mb-2 d-block">Import Mode</label>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="card border rounded-4 p-3 h-100 cursor-pointer d-block" for="modeUpsert" style="transition: border-color 0.2s;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="import_mode" id="modeUpsert" value="upsert" checked>
+                                            <span class="form-check-label fw-bold text-dark">
+                                                Upsert / Merge (Recommended)
+                                            </span>
+                                        </div>
+                                        <p class="small text-muted mb-0 mt-2">
+                                            Matches by <strong>Bosch VIN</strong>. Updates existing vehicles and inserts new ones without erasing past movement hops.
+                                        </p>
+                                    </label>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="card border rounded-4 p-3 h-100 cursor-pointer border-danger-subtle d-block" for="modeOverwrite" style="transition: border-color 0.2s;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="import_mode" id="modeOverwrite" value="overwrite">
+                                            <span class="form-check-label fw-bold text-danger">
+                                                Fresh Master Overwrite
+                                            </span>
+                                        </div>
+                                        <p class="small text-muted mb-0 mt-2">
+                                            Clears current database tables and initializes fresh master data directly from the uploaded spreadsheet.
+                                        </p>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <a href="{{ url_for('data_manager.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-success px-4 fw-bold shadow-sm d-flex align-items-center gap-2">
+                                <i class="bi bi-cloud-arrow-up-fill"></i>
+                                <span>Upload &amp; Synchronize SQL</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Expected Structure Guide -->
+            <div class="card border-0 rounded-4 shadow-sm">
+                <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-muted text-uppercase small">
+                        <i class="bi bi-info-circle me-1"></i> Excel Column Layout Reference (25 Columns)
+                    </h6>
+                    <a href="{{ url_for('data_manager.export_data') }}" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-download me-1"></i> Download Template
+                    </a>
+                </div>
+                <div class="card-body p-4 pt-2">
+                    <p class="small text-muted mb-2">
+                        The importer automatically normalizes headers and maps them to the appropriate database columns:
+                    </p>
+                    <div class="d-flex flex-wrap gap-1 small font-monospace">
+                        <span class="badge bg-light text-dark border">SR.NO</span>
+                        <span class="badge bg-light text-dark border">BOSCHVehicle Identification No</span>
+                        <span class="badge bg-light text-dark border">OEM</span>
+                        <span class="badge bg-light text-dark border">VEHICLE NAME</span>
+                        <span class="badge bg-light text-dark border">OEM Identification No</span>
+                        <span class="badge bg-light text-dark border">Type</span>
+                        <span class="badge bg-light text-dark border">BOSCH DC-1</span>
+                        <span class="badge bg-light text-dark border">BOSCH DC-2</span>
+                        <span class="badge bg-light text-dark border">Owner</span>
+                        <span class="badge bg-success text-white border">INCOMING DATE (Start)</span>
+                        <span class="badge bg-light text-dark border">CHASSIS NO</span>
+                        <span class="badge bg-light text-dark border">MATERIAL COME WITH VEHICLE</span>
+                        <span class="badge bg-light text-dark border">Spare Parts Link</span>
+                        <span class="badge bg-light text-dark border">OUTGOING DATE</span>
+                        <span class="badge bg-light text-dark border">OUTGOING LOCATION</span>
+                        <span class="badge bg-light text-dark border">INCOMING DATE2</span>
+                        <span class="badge bg-light text-dark border">CURRENT STATUS</span>
+                        <span class="badge bg-success text-white border">RECEIVING LOCATION (Start)</span>
+                        <span class="badge bg-light text-dark border">Date sent to customer</span>
+                        <span class="badge bg-light text-dark border">PDI STATUS</span>
+                        <span class="badge bg-light text-dark border">VEHICLE PROBLEM/ISSUES</span>
+                        <span class="badge bg-light text-dark border">WORK ORDER RECEIVED DATE</span>
+                        <span class="badge bg-light text-dark border">TPM COMFIRMATION</span>
+                        <span class="badge bg-light text-dark border">REMARK</span>
+                        <span class="badge bg-light text-dark border">Movement_History</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

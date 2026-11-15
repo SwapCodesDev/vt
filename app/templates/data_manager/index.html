@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Data Management | Bosch Vehicle Tracking{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4 py-4">
+    <!-- Header & Action Toolbar -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-2">
+        <div>
+            <h4 class="fw-bold mb-0 text-dark">Data Management Hub</h4>
+            <p class="text-muted small mb-0">View, modify, and export the master vehicle records stored in SQLite.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('data_manager.import_data') }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-upload me-1"></i> Import Excel / CSV
+            </a>
+            <a href="{{ url_for('data_manager.export_data') }}" class="btn btn-sm btn-success">
+                <i class="bi bi-file-earmark-excel me-1"></i> Export Master (.xlsx)
+            </a>
+            <a href="{{ url_for('data_manager.add_vehicle') }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus me-1"></i> Add Vehicle
+            </a>
+        </div>
+    </div>
+
+    <!-- Master Data Table Card -->
+    <div class="card border rounded-3 bg-white shadow-sm overflow-hidden">
+        <div class="card-header bg-white border-bottom py-2 px-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="small fw-semibold text-dark">Master Vehicles Data Grid</span>
+                <span class="badge bg-light text-muted border font-monospace">{{ total_count }} records</span>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <input type="text" id="tableFilterInput" class="form-control form-control-sm" placeholder="Filter rows...">
+            </div>
+        </div>
+
+        <div class="table-responsive" style="max-height: 720px;">
+            <table class="table clean-table mb-0 text-nowrap small" id="masterDataTable">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th class="ps-3">Actions</th>
+                        <th>SR.NO</th>
+                        <th>BOSCH VIN</th>
+                        <th>OEM</th>
+                        <th>VEHICLE NAME</th>
+                        <th>OEM ID NO</th>
+                        <th>Type</th>
+                        <th>Owner</th>
+                        <th>INCOMING DATE</th>
+                        <th>RECEIVING LOCATION</th>
+                        <th>CHASSIS NO</th>
+                        <th>CURRENT LOCATION</th>
+                        <th>CURRENT STATUS</th>
+                        <th>OUTGOING DATE</th>
+                        <th>OUTGOING LOCATION</th>
+                        <th>INCOMING DATE2</th>
+                        <th>DATE SENT TO CUSTOMER</th>
+                        <th>PDI STATUS</th>
+                        <th>TPM CONFIRMATION</th>
+                        <th>PROBLEMS / ISSUES</th>
+                        <th>MATERIAL WITH VEHICLE</th>
+                        <th>SPARE PARTS LINK</th>
+                        <th>REMARK</th>
+                        <th>BOSCH DC-1</th>
+                        <th>BOSCH DC-2</th>
+                        <th class="pe-3">Movement History</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vehicles %}
+                    <tr>
+                        <td class="ps-3">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('data_manager.edit_vehicle', vehicle_id=v.id) }}" class="btn btn-outline-secondary btn-sm" title="Edit in SQL">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{{ url_for('tracking.detail', vehicle_id=v.id) }}" class="btn btn-outline-secondary btn-sm" title="View 360 & Hops">
+                                    <i class="bi bi-diagram-3"></i>
+                                </a>
+                                <form action="{{ url_for('data_manager.delete_vehicle', vehicle_id=v.id) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('Delete vehicle {{ v.bosch_vin }} permanently?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                        <td class="font-monospace text-muted">{{ v.sr_no or loop.index }}</td>
+                        <td class="fw-bold font-monospace">
+                            <a href="{{ url_for('tracking.detail', vehicle_id=v.id) }}" class="text-decoration-none">
+                                {{ v.bosch_vin }}
+                            </a>
+                        </td>
+                        <td>{{ v.oem }}</td>
+                        <td class="fw-semibold">{{ v.vehicle_name }}</td>
+                        <td class="font-monospace text-muted">{{ v.oem_id_no or '' }}</td>
+                        <td>{{ v.vehicle_type or 'PP' }}</td>
+                        <td>{{ v.owner or '' }}</td>
+                        <td class="font-monospace">{{ v.incoming_date or '' }}</td>
+                        <td class="fw-semibold">{{ v.receiving_location or '' }}</td>
+                        <td class="font-monospace">{{ v.chassis_no or '' }}</td>
+                        <td>
+                            <span class="badge-subtle badge-subtle-primary">{{ v.current_location }}</span>
+                        </td>
+                        <td>
+                            <span class="badge-subtle badge-subtle-secondary">{{ v.current_status }}</span>
+                        </td>
+                        <td class="font-monospace">{{ v.outgoing_date or '' }}</td>
+                        <td>{{ v.outgoing_location or '' }}</td>
+                        <td class="font-monospace">{{ v.incoming_date2 or '' }}</td>
+                        <td class="font-monospace">{{ v.date_sent_to_customer or '' }}</td>
+                        <td>{{ v.pdi_status or '' }}</td>
+                        <td>{{ v.tpm_confirmation or '' }}</td>
+                        <td class="{{ 'text-danger fw-semibold' if v.vehicle_problem_issues else 'text-muted' }}">
+                            {{ v.vehicle_problem_issues or '-' }}
+                        </td>
+                        <td class="text-truncate" style="max-width: 180px;" title="{{ v.material_with_vehicle }}">
+                            {{ v.material_with_vehicle or '-' }}
+                        </td>
+                        <td>{{ v.spare_parts_link or '-' }}</td>
+                        <td class="text-truncate" style="max-width: 180px;" title="{{ v.remark }}">
+                            {{ v.remark or '-' }}
+                        </td>
+                        <td class="font-monospace">{{ v.bosch_dc1 or '-' }}</td>
+                        <td class="font-monospace">{{ v.bosch_dc2 or '-' }}</td>
+                        <td class="pe-3 text-truncate font-monospace" style="max-width: 220px;" title="{{ v.movement_history_summary }}">
+                            {{ v.movement_history_summary or '-' }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="26" class="text-center py-4 text-muted">
+                            <div>No vehicle records found.</div>
+                            <a href="{{ url_for('data_manager.import_data') }}" class="btn btn-sm btn-primary mt-2">Import Data</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('tableFilterInput')?.addEventListener('keyup', function() {
+        const query = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#masterDataTable tbody tr');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(query) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

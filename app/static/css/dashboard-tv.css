@@ -1,0 +1,377 @@
+/* ==========================================================================
+   BOSCH 24/7 TV MONITOR - STRICTLY ONE PAGE VIEWPORT LAYOUT
+   Height strictly locked to 100vh with Zero Page Scrollbar
+   Executive Telemetry: Location Chips at Top, Split Movements & Roadmap
+   ========================================================================== */
+
+:root {
+    --tv-bg: #090d16;
+    --tv-header-bg: #0c1220;
+    --tv-card-bg: #101625;
+    --tv-card-subtle: #0d1424;
+    --tv-border: #1e293b;
+    --tv-border-subtle: #162032;
+    --tv-border-focus: #38bdf8;
+
+    --tv-text-primary: #f8fafc;
+    --tv-text-secondary: #94a3b8;
+    --tv-text-muted: #64748b;
+
+    --accent-blue: #38bdf8;
+    --accent-yellow: #f59e0b;
+    --accent-green: #10b981;
+    --accent-red: #ef4444;
+
+    --font-heading: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+}
+
+/* Strict 100vh Window Lock */
+html, body.tv-dashboard {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--tv-bg);
+    color: var(--tv-text-primary);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 1. Header Bar: Compact 48px fixed height */
+.tv-header {
+    height: 48px;
+    flex-shrink: 0;
+    background: var(--tv-header-bg);
+    border-bottom: 1px solid var(--tv-border) !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Compact Top KPIs Strip */
+.kiosk-kpi-strip {
+    flex-shrink: 0;
+    background: #090e1a;
+    border-bottom: 1px solid var(--tv-border) !important;
+}
+
+.kpi-mini-card {
+    background: var(--tv-card-bg);
+    border: 1px solid var(--tv-border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    transition: all 0.15s ease-in-out;
+}
+
+.kpi-mini-card:hover {
+    border-color: #334155;
+    background: #141c30;
+}
+
+.kpi-mini-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.kpi-mini-label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--tv-text-muted);
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+}
+
+.kpi-mini-val {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.2;
+}
+
+/* 2. Top Location-Wise Quantities Chips Bar */
+.location-chips-bar {
+    flex-shrink: 0;
+    background: var(--tv-header-bg);
+    border-bottom: 1px solid var(--tv-border) !important;
+}
+
+.location-bar-title {
+    font-family: var(--font-body);
+}
+
+.location-chips-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--tv-border) transparent;
+}
+
+.location-chips-scroll::-webkit-scrollbar {
+    height: 4px;
+}
+
+.location-chips-scroll::-webkit-scrollbar-thumb {
+    background: var(--tv-border);
+    border-radius: 4px;
+}
+
+.location-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--tv-card-bg);
+    border: 1px solid var(--tv-border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--tv-text-secondary);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    user-select: none;
+}
+
+.location-chip:hover {
+    background: #151e32;
+    border-color: #334155;
+    color: var(--tv-text-primary);
+}
+
+.location-chip.active {
+    background: rgba(56, 189, 248, 0.12);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+
+.location-chip .chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--accent-blue);
+    flex-shrink: 0;
+}
+
+.location-chip .chip-name {
+    font-family: var(--font-body);
+    letter-spacing: 0.02em;
+}
+
+.location-chip .chip-count {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: #1c273a;
+    color: var(--accent-yellow);
+}
+
+.location-chip.active .chip-count {
+    background: var(--accent-blue);
+    color: #0c1220;
+}
+
+/* 3. Main Split View: Takes all remaining viewport height */
+.kiosk-split-view {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.bg-dark-card {
+    background-color: var(--tv-card-bg) !important;
+    border-color: var(--tv-border) !important;
+    border-radius: 6px;
+}
+
+/* Left Pane: Movement Stream */
+.movement-stream-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--tv-border) transparent;
+}
+
+.movement-stream-scroll::-webkit-scrollbar,
+.roadmap-body-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+
+.movement-stream-scroll::-webkit-scrollbar-thumb,
+.roadmap-body-scroll::-webkit-scrollbar-thumb {
+    background: var(--tv-border);
+    border-radius: 4px;
+}
+
+.movement-card {
+    background: var(--tv-card-subtle);
+    border: 1px solid var(--tv-border);
+    border-left: 3px solid transparent;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+
+.movement-card:hover {
+    background: #131c30;
+    border-color: #334155;
+}
+
+.movement-card.active {
+    background: rgba(56, 189, 248, 0.08);
+    border-color: var(--accent-blue);
+    border-left: 3px solid var(--accent-blue);
+}
+
+.movement-card .movement-route {
+    font-size: 0.8rem;
+    letter-spacing: 0.01em;
+}
+
+/* Right Pane: Selected Vehicle Roadmap & Timeline */
+.roadmap-spec-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+@media (max-width: 1200px) {
+    .roadmap-spec-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.spec-card {
+    background: var(--tv-card-subtle);
+    border: 1px solid var(--tv-border);
+    border-radius: 6px;
+    padding: 7px 11px;
+}
+
+.spec-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--tv-text-muted);
+    letter-spacing: 0.04em;
+}
+
+.spec-value {
+    font-size: 0.82rem;
+    color: var(--tv-text-primary);
+    margin-top: 2px;
+}
+
+/* Roadmap Stepper / Timeline */
+.roadmap-stepper {
+    position: relative;
+    padding-left: 6px;
+}
+
+.stepper-node {
+    position: relative;
+    padding-left: 32px;
+    padding-bottom: 16px;
+}
+
+.stepper-node:last-child {
+    padding-bottom: 4px;
+}
+
+/* Connector Line between hops */
+.stepper-node::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 20px;
+    bottom: 0;
+    width: 2px;
+    background: var(--tv-border);
+}
+
+.stepper-node:last-child::before {
+    display: none;
+}
+
+.stepper-marker {
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--tv-header-bg);
+    border: 2px solid var(--tv-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    z-index: 2;
+}
+
+.stepper-node.is-current .stepper-marker {
+    border-color: var(--accent-yellow);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+}
+
+.stepper-card {
+    background: var(--tv-card-subtle);
+    border: 1px solid var(--tv-border);
+    border-radius: 6px;
+    padding: 9px 13px;
+    transition: all 0.15s ease-in-out;
+}
+
+.stepper-node.is-current .stepper-card {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(245, 158, 11, 0.03);
+}
+
+/* Subtle Stream Indicator Dots */
+.stream-indicator-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--accent-green);
+    margin-right: 5px;
+    vertical-align: middle;
+    animation: livePulse 2s infinite ease-in-out;
+}
+
+.pulse-indicator {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--accent-blue);
+    animation: livePulse 2s infinite ease-in-out;
+}
+
+@keyframes livePulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+}
