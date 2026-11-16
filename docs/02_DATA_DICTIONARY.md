@@ -1,55 +1,53 @@
 # 2. Data Dictionary & Field Specifications
 
-## Master Excel Attributes vs. Database Schema
+## 1. Vehicle Details Table (`vehicles`)
 
-The SQLite database table `vehicles` maps 1:1 with the company's 25-column master Excel spreadsheet layout:
+The SQLite database table `vehicles` stores the vehicle's initial entry specifications. All column names are strictly lowercase with `_` as spacebar:
 
-| # | Master Excel Column Header | DB Field Name | Data Type | Nullable | Description & Constraints |
-|---|----------------------------|---------------|-----------|----------|---------------------------|
-| 1 | `SR.NO` | `sr_no` | INTEGER | Yes | Master serial number sequence |
-| 2 | `BOSCHVehicle Identification No` | `bosch_vin` | VARCHAR(100) | **NO (PK/UK)** | Unique Bosch Vehicle ID (e.g. `CVP_2023_001`). Primary lookup key. |
-| 3 | `OEM` | `oem` | VARCHAR(100) | **NO** | Manufacturer name (e.g. `TATA`, `MARUTI SUZUKI`, `MG MOTOR`). Indexed. |
-| 4 | `VEHICLE NAME` | `vehicle_name` | VARCHAR(150) | **NO** | Model name (e.g. `ALTROZ CNG`, `SAFARI`, `NEXON`). |
-| 5 | `OEM Identification No` | `oem_id_no` | VARCHAR(100) | Yes | OEM internal tag/part number (e.g. `EP07116`, `HBN`). Indexed. |
-| 6 | `Type` | `vehicle_type` | VARCHAR(50) | Yes | Pre-production status: `PP` or `NON PP`. |
-| 7 | `BOSCH DC-1` | `bosch_dc1` | VARCHAR(100) | Yes | Initial Delivery Challan number from Bosch gate. |
-| 8 | `BOSCH DC-2` | `bosch_dc2` | VARCHAR(100) | Yes | Secondary Delivery Challan number for external transit. |
-| 9 | `Owner` | `owner` | VARCHAR(150) | Yes | Responsible engineer or department lead (e.g. `Pankaj Ambatkar (CC/EAS1-IN)`). |
-| 10 | `INCOMING DATE` | `incoming_date` | VARCHAR(50) | Yes | **Start Point Arrival Date** (e.g. `02-Feb-23`). Anchors Hop #1. |
-| 11 | `CHASSIS NO` | `chassis_no` | VARCHAR(100) | Yes | Vehicle chassis identification number. Indexed. |
-| 12 | `MATERIAL COME WITH VEHICLE` | `material_with_vehicle` | TEXT | Yes | Inventory of tools, jacks, cables, and spares received with vehicle. |
-| 13 | `Spare Parts Link` | `spare_parts_link` | TEXT | Yes | Spare parts status or portal URL (e.g. `NO SPARE PARTS AVAILABLE`). |
-| 14 | `OUTGOING DATE` | `outgoing_date` | VARCHAR(50) | Yes | Date dispatched from Bosch facility. |
-| 15 | `OUTGOING LOCATION` | `outgoing_location` | VARCHAR(150) | Yes | Destination of departure (e.g. `NATRAX`, `TATA MOTORS`). |
-| 16 | `INCOMING DATE2` | `incoming_date2` | VARCHAR(50) | Yes | Return date when vehicle re-enters after external testing. |
-| 17 | `CURRENT STATUS` | `current_status` | VARCHAR(100) | Yes | Operational condition (e.g. `Received`, `Dispatched`, `In Workshop`, `At Location`). |
-| 18 | `RECEIVING LOCATION` | `receiving_location` | VARCHAR(150) | Yes | **Start Point Facility** (e.g. `BOSCH PLANT`, `WORKSHOP`). Anchors Hop #1. |
-| 19 | `Date sent to customer` | `date_sent_to_customer` | VARCHAR(50) | Yes | Date handed over to customer/OEM. |
-| 20 | `PDI STATUS` | `pdi_status` | VARCHAR(100) | Yes | Pre-Delivery Inspection status (`Completed`, `Pending`, `Passed`). |
-| 21 | `VEHICLE PROBLEM/ISSUES` | `vehicle_problem_issues` | TEXT | Yes | Logged issues, sensor calibration alerts, or mechanical faults. |
-| 22 | `WORK ORDER RECEIVED DATE` | `work_order_received_date` | VARCHAR(50) | Yes | Date when formal maintenance/testing work order was received. |
-| 23 | `TPM COMFIRMATION` | `tpm_confirmation` | VARCHAR(100) | Yes | Total Productive Maintenance sign-off status. |
-| 24 | `REMARK` | `remark` | TEXT | Yes | General notes, cycle descriptions, or engineering remarks. |
-| 25 | `Movement_History` | `movement_history_summary`| TEXT | Yes | Serialized summary of all lifecycle hops. |
+| # | Column Name | Type | Constraints | Description & Constraints |
+|---|-------------|------|-------------|---------------------------|
+| 1 | `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique internal database identifier |
+| 2 | `sr_no` | INTEGER | NULLABLE | Automatic internal serial sequence (no user input needed) |
+| 3 | `bosch_vin` | VARCHAR(100) | NOT NULL UNIQUE INDEXED | Unique Bosch Vehicle ID (e.g. `CVP_2023_001`). Primary lookup key. |
+| 4 | `oem_id` | VARCHAR(100) | NULLABLE INDEXED | OEM Identification No (e.g. `EP07116`, `HBN`). |
+| 5 | `oem` | VARCHAR(100) | NOT NULL INDEXED | Manufacturer name (e.g. `TATA`, `MARUTI SUZUKI`, `MG MOTOR`). |
+| 6 | `vehicle_name` | VARCHAR(150) | NOT NULL | Model name (e.g. `ALTROZ CNG`, `SAFARI`, `NEXON`). |
+| 7 | `type` | VARCHAR(50) | NULLABLE | Pre-production status: `PP` or `NON PP`. |
+| 8 | `owner` | VARCHAR(150) | NULLABLE | Responsible engineer or department lead (e.g. `Pankaj Ambatkar (CC/EAS1-IN)`). |
+| 9 | `chassis_no` | VARCHAR(100) | NULLABLE INDEXED | Vehicle chassis identification number. |
+| 10 | `vehicle_material` | TEXT | NULLABLE | Material come with vehicle: inventory of tools, jacks, cables, and spares. |
+| 11 | `spare_parts_link` | TEXT | NULLABLE | Spare parts status or portal URL (e.g. `NO SPARE PARTS AVAILABLE`). |
+| 12 | `pdi_status` | VARCHAR(100) | NULLABLE | Pre-Delivery Inspection status (`Completed`, `Pending`, `Passed`). |
+| 13 | `vehicle_issues` | TEXT | NULLABLE | Logged issues, sensor calibration alerts, or mechanical faults. |
+| 14 | `work_order_received_date` | VARCHAR(50) | NULLABLE | Date when formal maintenance/testing work order was received. |
+| 15 | `tpm_confirmation` | VARCHAR(100) | NULLABLE | Total Productive Maintenance sign-off status. |
+| 16 | `current_status` | VARCHAR(100) | NULLABLE | Operational condition (e.g. `RECEIVED`, `In Workshop`, `At Location`). |
+| 17 | `current_location` | VARCHAR(150) | NOT NULL INDEXED | Automatically derived from latest hop in `vehicle_movements`. |
+| 18 | `remark` | TEXT | NULLABLE | General notes, cycle descriptions, or engineering remarks. |
+| 19 | `total_hops` | INTEGER | NOT NULL DEFAULT 0 | Automatically maintained count of hops recorded for this vehicle. |
+| 20 | `created_at` | DATETIME | NOT NULL | Automatic UTC creation timestamp. |
+| 21 | `updated_at` | DATETIME | NOT NULL | Automatic UTC update timestamp. |
+
+> [!NOTE]
+> All legacy hop columns (`BOSCH DC-1`, `BOSCH DC-2`, `INCOMING DATE`, `OUTGOING DATE`, `OUTGOING LOCATION`, `INCOMING DATE2`, `RECEIVING LOCATION`, `Date sent to customer`, `Movement_History`) have been separated from `vehicles` and consolidated into `vehicle_movements`.
 
 ---
 
-## 2. Multi-Hop Journey Table (`vehicle_movements`)
+## 2. Hop Details Table (`vehicle_movements`)
 
-Stores every hop in the vehicle's lifecycle:
+Stores every hop in the vehicle's journey lifecycle:
 
-| Field Name | Type | Key | Description |
-|------------|------|-----|-------------|
-| `id` | INTEGER | Primary Key | Unique movement hop ID |
-| `vehicle_id` | INTEGER | Foreign Key | References `vehicles.id` with CASCADE delete |
-| `hop_sequence` | INTEGER | - | Chronological sequence (1, 2, 3, ...) |
-| `source_location` | VARCHAR(150) | - | Origin point for this specific hop |
-| `destination_location` | VARCHAR(150) | - | Destination point for this specific hop |
-| `dispatch_date` | VARCHAR(50) | - | Date departed from source |
-| `arrival_date` | VARCHAR(50) | - | Date reached destination |
-| `movement_purpose` | VARCHAR(150) | - | Objective (e.g. Track Testing, Return, OEM Review) |
-| `work_done` | TEXT | - | Detailed description of tasks performed |
-| `dc_number` | VARCHAR(100) | - | Gate pass or Delivery Challan reference |
-| `status` | VARCHAR(100) | - | Status at conclusion of hop |
-| `remarks` | TEXT | - | Audit remarks |
-| `created_at` | DATETIME | - | Automatic system timestamp |
+| # | Column Name | Type | Key / Constraints | Description |
+|---|-------------|------|-------------------|-------------|
+| 1 | `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique movement hop ID |
+| 2 | `vehicle_id` | INTEGER | FOREIGN KEY (vehicles.id) INDEXED | References parent vehicle with cascade delete |
+| 3 | `hop_sequence` | INTEGER | NOT NULL DEFAULT 1 | Chronological sequence ($1, 2, 3...$) |
+| 4 | `source_location` | VARCHAR(150) | NOT NULL | Origin facility for this specific hop |
+| 5 | `destination_location` | VARCHAR(150) | NOT NULL | Destination facility for this specific hop |
+| 6 | `dispatch_date` | VARCHAR(50) | NULLABLE | Date departed from origin |
+| 7 | `arrival_date` | VARCHAR(50) | NULLABLE | Date reached destination |
+| 8 | `dc_number` | VARCHAR(100) | NULLABLE | Gate pass or Delivery Challan reference |
+| 9 | `movement_purpose` | VARCHAR(150) | NULLABLE | Objective (e.g. Genesis Initial Receipt, Track Testing, Return) |
+| 10 | `status` | VARCHAR(100) | NULLABLE DEFAULT 'At Location' | Status at conclusion of hop |
+| 11 | `remarks` | TEXT | NULLABLE | Work done or inspection remarks |
+| 12 | `created_at` | DATETIME | NOT NULL | Automatic UTC record creation timestamp |

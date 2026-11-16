@@ -71,3 +71,23 @@ def quick_edit(vehicle_id):
         
     db.session.commit()
     return jsonify({'success': True, 'vehicle': vehicle.to_dict()})
+
+@api_bp.route('/theme', methods=['POST'])
+def set_theme():
+    """Allows client-side instant theme synchronization and cookie persistence."""
+    payload = request.get_json(silent=True) or request.form
+    software_theme = payload.get('software_theme')
+    dashboard_theme = payload.get('dashboard_theme')
+    
+    resp = jsonify({
+        'status': 'ok',
+        'software_theme': software_theme,
+        'dashboard_theme': dashboard_theme
+    })
+    
+    if software_theme in ('light', 'dark'):
+        resp.set_cookie('software_theme', software_theme, max_age=60*60*24*365, samesite='Lax')
+    if dashboard_theme in ('light', 'dark'):
+        resp.set_cookie('dashboard_theme', dashboard_theme, max_age=60*60*24*365, samesite='Lax')
+        
+    return resp

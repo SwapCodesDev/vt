@@ -1,65 +1,84 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en" data-bs-theme="{{ dashboard_theme|default('dark') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>24/7 Live Stream Dashboard | Bosch Fleet Telemetry</title>
+    <title>Dashboard | Bosch Vehicle Tracking</title>
+    
+    <!-- Instant Zero-FOUC Dashboard Theme Initialization -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('dashboard_theme');
+            if (theme && (theme === 'light' || theme === 'dark')) {
+                document.documentElement.setAttribute('data-bs-theme', theme);
+            }
+        })();
+    </script>
     
     <!-- Modern Clean Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
     
-    <!-- Bootstrap 5 CSS & Icons -->
+    <!-- Bootstrap 5 CSS & Lucide Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     
     <!-- Strictly One-Page TV Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-tv.css') }}">
 </head>
 <body class="tv-dashboard">
-    <!-- Clean TV Header Bar -->
+    <!-- Bosch Multi-Color Header Top Line Strip -->
+    <div class="tv-bosch-strip" aria-hidden="true"></div>
+
+    <!-- Clean Dashboard Header Bar -->
     <header class="tv-header px-3 px-lg-4">
-        <!-- Left: Bosch Logo, Title ("Vehicle Tracking"), Bosch Slogan ("Invented for life") -->
+        <!-- Left: Bosch Official Logo, Title ("Vehicle Tracking"), Bosch Slogan ("Invented for life") -->
         <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-danger px-2 py-1 fs-6 fw-bold font-monospace">BOSCH</span>
+            <span class="bg-white rounded px-2 py-1 d-inline-flex align-items-center shadow-sm">
+                <img src="{{ url_for('static', filename='svg/bosch-logo.svg') }}" alt="BOSCH" height="18" style="height: 18px; width: auto;">
+            </span>
             <span class="fw-bold text-white fs-6">Vehicle Tracking</span>
             <span class="text-secondary small fst-italic border-start border-secondary ps-2 ms-1">Invented for life</span>
         </div>
 
-        <!-- Right: Refresh in Timer & Controls (Except Filter) -->
+        <!-- Right: Refresh in Timer & Dashboard Controls -->
         <div class="d-flex align-items-center gap-2">
             <div class="d-flex align-items-center gap-1 font-monospace text-secondary small bg-dark border border-secondary px-2 py-1 rounded">
                 <span class="stream-indicator-dot"></span>
-                <span id="nextRefreshCountdown">Refresh in 10s</span>
+                <span id="nextRefreshCountdown">Refresh in 20s</span>
             </div>
 
             <div class="btn-group btn-group-sm">
-                <button type="button" class="btn btn-outline-secondary text-white" id="toggleFullscreenBtn" title="Toggle Fullscreen (F11)">
-                    <i class="bi bi-arrows-fullscreen"></i>
+                <button type="button" class="btn btn-outline-secondary text-white d-inline-flex align-items-center justify-content-center" id="toggleThemeBtn" title="Toggle Dashboard Theme (Light/Dark)">
+                    <i data-lucide="sun-moon" style="width: 14px; height: 14px;"></i>
                 </button>
-                <button type="button" class="btn btn-outline-secondary text-white" id="manualSyncBtn" title="Sync Telemetry">
-                    <i class="bi bi-arrow-repeat"></i>
+                <button type="button" class="btn btn-outline-secondary text-white d-inline-flex align-items-center justify-content-center" id="toggleFullscreenBtn" title="Toggle Fullscreen (F11)">
+                    <i data-lucide="maximize" style="width: 14px; height: 14px;"></i>
                 </button>
-                <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary text-white" title="Exit to Home">
-                    <i class="bi bi-box-arrow-left"></i> Exit
+                <button type="button" class="btn btn-outline-secondary text-white d-inline-flex align-items-center justify-content-center" id="manualSyncBtn" title="Sync Telemetry">
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                </button>
+                <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary text-white d-inline-flex align-items-center gap-1" title="Exit to Home">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px;"></i>
+                    <span>Exit</span>
                 </a>
             </div>
         </div>
     </header>
 
-    <!-- Smaller Sized Compact Top KPIs Bar -->
-    <section class="kiosk-kpi-strip px-3 px-lg-4 py-1 border-bottom border-secondary">
+    <!-- Top KPIs Strip with Enlarged Shortform Values -->
+    <section class="kiosk-kpi-strip px-3 px-lg-4 py-2 border-bottom border-secondary">
         <div class="row g-2 align-items-center">
             <div class="col">
                 <div class="kpi-mini-card">
                     <div class="d-flex align-items-center gap-2">
                         <div class="kpi-mini-icon text-white bg-secondary bg-opacity-25">
-                            <i class="bi bi-truck-front-fill"></i>
+                            <i data-lucide="truck" style="width: 18px; height: 18px;"></i>
                         </div>
                         <div class="overflow-hidden">
                             <div class="kpi-mini-label text-truncate">Total Fleet</div>
-                            <div class="kpi-mini-val text-white" id="kpiTotalFleet">{{ telemetry.total_vehicles }}</div>
+                            <div class="kpi-mini-val text-white" id="kpiTotalFleet">{{ telemetry.total_vehicles|short_num }}</div>
                         </div>
                     </div>
                 </div>
@@ -69,11 +88,11 @@
                 <div class="kpi-mini-card">
                     <div class="d-flex align-items-center gap-2">
                         <div class="kpi-mini-icon text-info bg-info bg-opacity-10">
-                            <i class="bi bi-geo-alt-fill"></i>
+                            <i data-lucide="map-pin" style="width: 18px; height: 18px;"></i>
                         </div>
                         <div class="overflow-hidden">
                             <div class="kpi-mini-label text-truncate">Active Hubs</div>
-                            <div class="kpi-mini-val text-info" id="kpiActiveHubs">{{ telemetry.location_breakdown|length }}</div>
+                            <div class="kpi-mini-val text-info" id="kpiActiveHubs">{{ telemetry.location_breakdown|length|short_num }}</div>
                         </div>
                     </div>
                 </div>
@@ -83,11 +102,11 @@
                 <div class="kpi-mini-card">
                     <div class="d-flex align-items-center gap-2">
                         <div class="kpi-mini-icon text-success bg-success bg-opacity-10">
-                            <i class="bi bi-signpost-split-fill"></i>
+                            <i data-lucide="git-commit" style="width: 18px; height: 18px;"></i>
                         </div>
                         <div class="overflow-hidden">
                             <div class="kpi-mini-label text-truncate">Total Hops</div>
-                            <div class="kpi-mini-val text-success" id="kpiTotalHops">{{ telemetry.total_hops }}</div>
+                            <div class="kpi-mini-val text-success" id="kpiTotalHops">{{ telemetry.total_hops|short_num }}</div>
                         </div>
                     </div>
                 </div>
@@ -97,11 +116,11 @@
                 <div class="kpi-mini-card">
                     <div class="d-flex align-items-center gap-2">
                         <div class="kpi-mini-icon text-warning bg-warning bg-opacity-10">
-                            <i class="bi bi-buildings-fill"></i>
+                            <i data-lucide="building-2" style="width: 18px; height: 18px;"></i>
                         </div>
                         <div class="overflow-hidden">
                             <div class="kpi-mini-label text-truncate">OEM Brands</div>
-                            <div class="kpi-mini-val text-warning" id="kpiOemBrands">{{ telemetry.oem_distribution|length }}</div>
+                            <div class="kpi-mini-val text-warning" id="kpiOemBrands">{{ telemetry.oem_distribution|length|short_num }}</div>
                         </div>
                     </div>
                 </div>
@@ -111,11 +130,11 @@
                 <div class="kpi-mini-card">
                     <div class="d-flex align-items-center gap-2">
                         <div class="kpi-mini-icon text-danger bg-danger bg-opacity-10">
-                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <i data-lucide="alert-triangle" style="width: 18px; height: 18px;"></i>
                         </div>
                         <div class="overflow-hidden">
                             <div class="kpi-mini-label text-truncate">Active Issues</div>
-                            <div class="kpi-mini-val text-danger" id="kpiActiveIssues">{{ telemetry.problem_count }}</div>
+                            <div class="kpi-mini-val text-danger" id="kpiActiveIssues">{{ telemetry.problem_count|short_num }}</div>
                         </div>
                     </div>
                 </div>
@@ -123,59 +142,85 @@
         </div>
     </section>
 
-    <!-- Top Horizontal Location Wise Quantities Chips Bar -->
-    <section class="location-chips-bar px-3 px-lg-4 py-2 border-bottom border-secondary">
-        <div class="d-flex align-items-center justify-content-between gap-3 overflow-hidden">
-            <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                <span class="text-uppercase fw-semibold text-white location-bar-title" style="font-size: 0.75rem; letter-spacing: 0.05em;">
-                    LOCATION-WISE VEHICLE QUANTITIES (LIVE)
-                </span>
-                <span class="badge bg-secondary font-monospace" id="locationSummaryBadge" style="font-size: 0.68rem;">
-                    {{ telemetry.location_breakdown|length }} Hubs &bull; {{ telemetry.total_vehicles }} Units
-                </span>
-            </div>
-
-            <!-- Horizontal Scrollable Chips Container -->
-            <div class="location-chips-scroll d-flex align-items-center gap-2 overflow-x-auto py-1" id="locationChipsContainer">
-                <div class="location-chip active" data-location="ALL">
-                    <span class="chip-name">ALL LOCATIONS</span>
-                    <span class="chip-count" id="chipCountAll">{{ telemetry.total_vehicles }}</span>
-                </div>
-                {% for loc in telemetry.location_breakdown %}
-                <div class="location-chip" data-location="{{ loc.location }}">
-                    <span class="chip-dot"></span>
-                    <span class="chip-name text-truncate" title="{{ loc.location }}">{{ loc.location }}</span>
-                    <span class="chip-count">{{ loc.count }}</span>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-
-    <!-- Strictly One-Page Main Split View (Left: Live Movements | Right: Selected Vehicle Roadmap) -->
+    <!-- Strictly One-Page Main Split View (Left: Vehicle Quantities | Right: Live Movement Stream) -->
     <main class="kiosk-split-view px-3 px-lg-4 py-2">
-        <div class="row g-2 h-100 m-0">
-            <!-- Left Pane: Live Movement Stream -->
-            <div class="col-lg-5 col-xl-5 h-100 d-flex flex-column p-0 pe-lg-2">
+        <div class="row g-3 h-100 m-0">
+            <!-- Left Box: LOCATION-WISE VEHICLE QUANTITIES -->
+            <div class="col-lg-6 h-100 d-flex flex-column p-0 pe-lg-2">
+                <div class="card bg-dark-card shadow-sm h-100 d-flex flex-column overflow-hidden border-secondary">
+                    <div class="card-header bg-transparent border-secondary py-2 px-3 d-flex justify-content-between align-items-center flex-shrink-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <i data-lucide="map-pin" class="text-info" style="width: 16px; height: 16px;"></i>
+                            <span class="fw-bold text-white text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.04em;">
+                                LOCATION-WISE VEHICLE QUANTITIES
+                            </span>
+                        </div>
+                        <span class="badge bg-secondary bg-opacity-25 font-monospace text-info small" id="locationSummaryBadge">
+                            {{ telemetry.location_breakdown|length|short_num }} Hubs &bull; {{ telemetry.total_vehicles|short_num }} Units
+                        </span>
+                    </div>
+
+                    <!-- Scrollable Location Quantities Chip Cards Grid -->
+                    <div class="card-body p-2 overflow-y-auto location-quantities-scroll" id="locationQuantitiesContainer">
+                        <div class="location-chips-grid" id="locationQuantitiesList">
+                            <!-- All Locations Chip Card -->
+                            <div class="location-chip-card active" data-location="ALL">
+                                <div class="chip-card-header">
+                                    <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                        <i data-lucide="layers" class="text-info" style="width: 14px; height: 14px;"></i>
+                                        <span class="chip-card-name text-truncate">ALL LOCATIONS</span>
+                                    </div>
+                                    <span class="chip-card-badge">{{ telemetry.total_vehicles|short_num }}</span>
+                                </div>
+                                <div class="chip-card-footer">
+                                    <span class="small text-muted" style="font-size: 0.68rem;">100% of Fleet Active</span>
+                                    <span class="chip-card-pct font-monospace text-info ms-auto">{{ telemetry.location_breakdown|length }} Hubs</span>
+                                </div>
+                            </div>
+
+                            {% for loc in telemetry.location_breakdown %}
+                            {% set pct = (loc.count / telemetry.total_vehicles * 100)|round(1) if telemetry.total_vehicles > 0 else 0 %}
+                            <div class="location-chip-card" data-location="{{ loc.location }}">
+                                <div class="chip-card-header">
+                                    <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                        <span class="chip-pin-dot"></span>
+                                        <span class="chip-card-name text-truncate" title="{{ loc.location }}">{{ loc.location }}</span>
+                                    </div>
+                                    <span class="chip-card-badge">
+                                        {{ loc.count|short_num }}
+                                    </span>
+                                </div>
+                                <div class="chip-card-footer">
+                                    <div class="progress flex-grow-1" style="height: 3px; background: #1e293b;">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ pct }}%;"></div>
+                                    </div>
+                                    <span class="chip-card-pct font-monospace text-muted">{{ pct }}%</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Box: LIVE MOVEMENT STREAM (Clean Header without 24/7 or Hops count badges) -->
+            <div class="col-lg-6 h-100 d-flex flex-column p-0 ps-lg-2">
                 <div class="card bg-dark-card shadow-sm h-100 d-flex flex-column overflow-hidden border-secondary">
                     <div class="card-header bg-transparent border-secondary py-2 px-3 d-flex justify-content-between align-items-center flex-shrink-0">
                         <div class="d-flex align-items-center gap-2">
                             <span class="pulse-indicator"></span>
-                            <span class="fw-semibold text-white text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.04em;">
+                            <i data-lucide="activity" class="text-warning" style="width: 16px; height: 16px;"></i>
+                            <span class="fw-bold text-white text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.04em;">
                                 LIVE MOVEMENT STREAM
                             </span>
-                            <span class="badge bg-success bg-opacity-25 text-success font-monospace" style="font-size: 0.62rem;">24/7 STREAMING ACTIVE</span>
                         </div>
-                        <span class="badge bg-secondary font-monospace" id="streamCountBadge" style="font-size: 0.68rem;">
-                            {{ telemetry.recent_movements|length }} Recent Hops
-                        </span>
                     </div>
 
                     <!-- Scrollable Movement Stream -->
                     <div class="card-body p-2 overflow-y-auto movement-stream-scroll" id="movementStreamContainer">
                         <div class="d-flex flex-column gap-2" id="movementTickerList">
                             {% for m in telemetry.recent_movements %}
-                            <div class="movement-card {% if loop.first %}active{% endif %}" 
+                            <div class="movement-card" 
                                  data-vehicle-id="{{ m.vehicle_id }}" 
                                  data-vin="{{ m.vin }}" 
                                  data-oem="{{ m.oem }}" 
@@ -195,16 +240,16 @@
 
                                 <div class="movement-route py-1 d-flex align-items-center text-truncate">
                                     <span class="text-white fw-medium small text-truncate">{{ m.from }}</span>
-                                    <i class="bi bi-arrow-right text-warning mx-2 flex-shrink-0"></i>
+                                    <i data-lucide="arrow-right" class="text-warning mx-2 flex-shrink-0" style="width: 14px; height: 14px;"></i>
                                     <span class="text-warning fw-semibold small text-truncate">{{ m.to }}</span>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center text-muted mt-1" style="font-size: 0.7rem;">
                                     <span class="text-truncate pe-2">
-                                        <i class="bi bi-tag me-1"></i>{{ m.purpose or 'Fleet Transit' }}
+                                        <i data-lucide="tag" class="me-1" style="width: 12px; height: 12px;"></i>{{ m.purpose or 'Fleet Transit' }}
                                     </span>
                                     <span class="font-monospace text-secondary flex-shrink-0">
-                                        <i class="bi bi-calendar3 me-1"></i>{{ m.date or '-' }}
+                                        <i data-lucide="calendar" class="me-1" style="width: 12px; height: 12px;"></i>{{ m.date or '-' }}
                                     </span>
                                 </div>
                             </div>
@@ -213,192 +258,43 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Right Pane: Complete Timeline / Roadmap of Selected Vehicle -->
-            <div class="col-lg-7 col-xl-7 h-100 d-flex flex-column p-0 ps-lg-2">
-                <div class="card bg-dark-card shadow-sm h-100 d-flex flex-column overflow-hidden border-secondary">
-                    <!-- Right Card Header: Active Vehicle Info & Actions -->
-                    <div class="card-header bg-transparent border-secondary py-2 px-3 d-flex justify-content-between align-items-center flex-shrink-0">
-                        <div class="d-flex align-items-center gap-2 text-truncate">
-                            <span class="badge bg-warning text-dark font-monospace fw-bold" id="roadmapVinBadge">
-                                {% if telemetry.vehicles and telemetry.vehicles|length > 0 %}{{ telemetry.vehicles[0].bosch_vin }}{% else %}NO VEHICLE{% endif %}
-                            </span>
-                            <span class="fw-bold text-white small text-truncate" id="roadmapTitle">
-                                {% if telemetry.vehicles and telemetry.vehicles|length > 0 %}{{ telemetry.vehicles[0].oem }} {{ telemetry.vehicles[0].vehicle_name }}{% else %}-{% endif %}
-                            </span>
-                            <span class="badge bg-secondary font-monospace" id="roadmapTypeBadge">
-                                {% if telemetry.vehicles and telemetry.vehicles|length > 0 %}{{ telemetry.vehicles[0].vehicle_type or 'PP' }}{% endif %}
-                            </span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                            <a href="{% if telemetry.vehicles and telemetry.vehicles|length > 0 %}{{ url_for('tracking.detail', vehicle_id=telemetry.vehicles[0].id) }}{% else %}#{% endif %}" 
-                               id="roadmapFullTrackingBtn" target="_blank" class="btn btn-xs btn-outline-info text-nowrap py-1 px-2" style="font-size: 0.72rem;">
-                                <i class="bi bi-box-arrow-up-right me-1"></i>360&deg; Tracking
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Scrollable Roadmap Container -->
-                    <div class="card-body p-3 overflow-y-auto roadmap-body-scroll" id="vehicleRoadmapContainer">
-                        {% set active_v = telemetry.vehicles[0] if telemetry.vehicles and telemetry.vehicles|length > 0 else None %}
-                        {% if active_v %}
-                        <!-- Section 1: Executive Vehicle Specs Strip -->
-                        <div class="roadmap-spec-grid mb-3">
-                            <div class="spec-card">
-                                <div class="spec-label">Current Location</div>
-                                <div class="spec-value text-warning fw-bold d-flex align-items-center gap-1" id="roadmapCurrentLocation">
-                                    <i class="bi bi-geo-alt-fill text-danger"></i> {{ active_v.current_location }}
-                                </div>
-                                <div class="small text-muted mt-1" id="roadmapCurrentStatus">
-                                    Status: <span class="badge bg-secondary font-monospace" style="font-size: 0.65rem;">{{ active_v.current_status }}</span>
-                                </div>
-                            </div>
-
-                            <div class="spec-card">
-                                <div class="spec-label">Receiving Location (Start Point)</div>
-                                <div class="spec-value text-success fw-bold d-flex align-items-center gap-1" id="roadmapStartPoint">
-                                    <i class="bi bi-flag-fill text-success"></i> {{ active_v.receiving_location or 'BOSCH PLANT' }}
-                                </div>
-                                <div class="small text-muted mt-1" id="roadmapIncomingDate">
-                                    Date: <span class="font-monospace text-light">{{ active_v.incoming_date or '-' }}</span>
-                                </div>
-                            </div>
-
-                            <div class="spec-card">
-                                <div class="spec-label">OEM ID &bull; Chassis No</div>
-                                <div class="spec-value font-monospace small text-white text-truncate" id="roadmapOemChassis">
-                                    {{ active_v.oem_id_no or 'N/A' }}
-                                </div>
-                                <div class="small font-monospace text-muted text-truncate mt-1" id="roadmapChassisNo">
-                                    {{ active_v.chassis_no or '-' }}
-                                </div>
-                            </div>
-
-                            <div class="spec-card">
-                                <div class="spec-label">Owner &bull; Equipment</div>
-                                <div class="spec-value small text-white text-truncate" id="roadmapOwner">
-                                    {{ active_v.owner or 'Unassigned' }}
-                                </div>
-                                <div class="small text-muted text-truncate mt-1" id="roadmapMaterial" title="{{ active_v.material_with_vehicle }}">
-                                    {{ active_v.material_with_vehicle or 'Standard Kit' }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Reported Issues Banner (If present) -->
-                        <div class="alert alert-danger py-2 px-3 mb-3 d-flex align-items-center gap-2 text-danger {% if not active_v.vehicle_problem_issues %}d-none{% endif %}" id="roadmapIssueAlert" style="font-size: 0.78rem;">
-                            <i class="bi bi-exclamation-triangle-fill flex-shrink-0 fs-6"></i>
-                            <div class="text-truncate">
-                                <strong>Issue:</strong> <span id="roadmapIssueText">{{ active_v.vehicle_problem_issues }}</span>
-                                <span class="ms-2 badge bg-danger text-white font-monospace" id="roadmapTpmText">TPM: {{ active_v.tpm_confirmation or 'Pending' }}</span>
-                            </div>
-                        </div>
-
-                        <!-- Section 2: Complete Chronological Journey Roadmap -->
-                        <div class="roadmap-timeline-section">
-                            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary pb-2">
-                                <span class="fw-semibold text-uppercase text-secondary small tracking-wider">
-                                    <i class="bi bi-bezier2 me-1 text-info"></i> Complete Vehicle Journey Roadmap &amp; Lifecycle
-                                </span>
-                                <span class="badge bg-dark border border-secondary font-monospace text-info" id="roadmapHopCounter">
-                                    Total Hops: {{ active_v.total_hops }}
-                                </span>
-                            </div>
-
-                            <!-- Timeline Stepper Nodes -->
-                            <div class="roadmap-stepper" id="roadmapStepperList">
-                                {% if active_v.movements and active_v.movements|length > 0 %}
-                                    {% for hop in active_v.movements %}
-                                    <div class="stepper-node {% if loop.last %}is-current{% endif %}">
-                                        <div class="stepper-marker">
-                                            {% if loop.first %}
-                                                <i class="bi bi-flag-fill text-success"></i>
-                                            {% elif loop.last %}
-                                                <i class="bi bi-geo-alt-fill text-warning"></i>
-                                            {% else %}
-                                                <i class="bi bi-arrow-right-circle text-info"></i>
-                                            {% endif %}
-                                        </div>
-                                        <div class="stepper-card">
-                                            <div class="d-flex justify-content-between align-items-start mb-1">
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <span class="badge bg-secondary font-monospace" style="font-size: 0.65rem;">
-                                                        Hop #{{ hop.hop_sequence }}
-                                                    </span>
-                                                    {% if loop.first %}
-                                                    <span class="badge bg-success bg-opacity-25 text-success font-monospace" style="font-size: 0.65rem;">
-                                                        START POINT (GENESIS)
-                                                    </span>
-                                                    {% elif loop.last %}
-                                                    <span class="badge bg-warning bg-opacity-25 text-warning font-monospace" style="font-size: 0.65rem;">
-                                                        CURRENT LOCATION
-                                                    </span>
-                                                    {% endif %}
-                                                </div>
-                                                <span class="font-monospace text-muted small" style="font-size: 0.7rem;">
-                                                    {{ hop.arrival_date or hop.dispatch_date or '-' }}
-                                                </span>
-                                            </div>
-
-                                            <div class="fw-bold text-white small py-1">
-                                                <span>{{ hop.source_location }}</span>
-                                                <i class="bi bi-arrow-right text-warning mx-2"></i>
-                                                <span class="text-warning">{{ hop.destination_location }}</span>
-                                            </div>
-
-                                            <div class="stepper-details small text-muted mt-1">
-                                                {% if hop.movement_purpose %}
-                                                <div><strong>Purpose:</strong> {{ hop.movement_purpose }}</div>
-                                                {% endif %}
-                                                {% if hop.work_done %}
-                                                <div><strong>Work:</strong> {{ hop.work_done }}</div>
-                                                {% endif %}
-                                                <div class="d-flex align-items-center gap-3 mt-1" style="font-size: 0.68rem;">
-                                                    {% if hop.dc_number %}
-                                                    <span class="font-monospace text-info">DC: {{ hop.dc_number }}</span>
-                                                    {% endif %}
-                                                    {% if hop.status %}
-                                                    <span class="badge bg-dark border border-secondary text-secondary">{{ hop.status }}</span>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="stepper-node is-current">
-                                        <div class="stepper-marker">
-                                            <i class="bi bi-flag-fill text-success"></i>
-                                        </div>
-                                        <div class="stepper-card">
-                                            <div class="badge bg-success bg-opacity-25 text-success font-monospace mb-2" style="font-size: 0.68rem;">
-                                                HOP #1 &bull; GENESIS START POINT
-                                            </div>
-                                            <div class="fw-bold text-white small">
-                                                Stationed at {{ active_v.receiving_location or 'BOSCH PLANT' }}
-                                            </div>
-                                            <div class="small text-muted mt-1">
-                                                Incoming Date: {{ active_v.incoming_date or 'N/A' }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="text-center text-muted py-5">
-                            <i class="bi bi-truck fs-1 d-block mb-2"></i>
-                            Select a vehicle from the live movement stream to view its journey roadmap.
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
         </div>
     </main>
 
+    <!-- Bottom Running Updates Horizontal News Ticker -->
+    <div class="kiosk-ticker-bottom" id="kioskBottomTicker">
+        <div class="ticker-badge">
+            <span class="stream-indicator-dot" style="margin: 0;"></span>
+            <span>LIVE UPDATES</span>
+        </div>
+        <div class="ticker-track-wrap">
+            <div class="ticker-track" id="tickerTrack">
+                {% if telemetry.ticker_items %}
+                    {% for item in telemetry.ticker_items %}
+                    <span class="ticker-item">{{ item|safe }}</span>
+                    <span class="ticker-separator">&bull;</span>
+                    {% endfor %}
+                    <!-- Duplicate items for seamless continuous marquee loop -->
+                    {% for item in telemetry.ticker_items %}
+                    <span class="ticker-item">{{ item|safe }}</span>
+                    <span class="ticker-separator">&bull;</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="ticker-item">Fleet Telemetry Active &bull; All Systems Operational</span>
+                    <span class="ticker-separator">&bull;</span>
+                    <span class="ticker-item">Fleet Telemetry Active &bull; All Systems Operational</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
     <script src="{{ url_for('static', filename='js/dashboard-stream.js') }}"></script>
 </body>
 </html>

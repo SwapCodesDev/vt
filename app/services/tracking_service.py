@@ -7,7 +7,7 @@ def get_vehicle_by_identifier(identifier):
     - Bosch VIN
     - OEM Identification No
     - Chassis No
-    - ID
+    - Numeric primary key ID
     """
     if not identifier:
         return None
@@ -20,7 +20,7 @@ def get_vehicle_by_identifier(identifier):
         return v
     
     # Check by OEM ID
-    v = Vehicle.query.filter(func.lower(Vehicle.oem_id_no) == clean_id.lower()).first()
+    v = Vehicle.query.filter(func.lower(Vehicle.oem_id) == clean_id.lower()).first()
     if v:
         return v
         
@@ -35,8 +35,9 @@ def get_vehicle_by_identifier(identifier):
         
     return None
 
-def search_vehicles(query=None, oem=None, location=None, status=None):
-    """Search vehicles with multiple optional criteria."""
+def search_vehicles(query=None, oem=None, location=None, status=None,
+                    oems=None, locations=None, statuses=None):
+    """Search vehicles with multiple optional criteria and multi-select support."""
     q = Vehicle.query
     
     if query:
@@ -44,22 +45,48 @@ def search_vehicles(query=None, oem=None, location=None, status=None):
         q = q.filter(
             or_(
                 Vehicle.bosch_vin.ilike(term),
-                Vehicle.oem_id_no.ilike(term),
+                Vehicle.oem_id.ilike(term),
                 Vehicle.vehicle_name.ilike(term),
                 Vehicle.chassis_no.ilike(term),
                 Vehicle.owner.ilike(term),
-                Vehicle.oem.ilike(term)
+                Vehicle.oem.ilike(term),
+                Vehicle.current_location.ilike(term),
+                Vehicle.current_status.ilike(term)
             )
         )
     
+    # Process OEM filters (multi or single)
+    selected_oems = set()
     if oem and oem != 'ALL':
-        q = q.filter(Vehicle.oem == oem)
+        selected_oems.add(oem)
+    if oems:
+        for o in oems:
+            if o and o != 'ALL':
+                selected_oems.add(o)
+    if selected_oems:
+        q = q.filter(Vehicle.oem.in_(list(selected_oems)))
         
+    # Process Location filters (locations considered strictly from current_status column)
+    selected_locations = set()
     if location and location != 'ALL':
-        q = q.filter(Vehicle.current_location == location)
+        selected_locations.add(location)
+    if locations:
+        for l in locations:
+            if l and l != 'ALL':
+                selected_locations.add(l)
+    if selected_locations:
+        q = q.filter(Vehicle.current_status.in_(list(selected_locations)))
         
+    # Process Status filters
+    selected_statuses = set()
     if status and status != 'ALL':
-        q = q.filter(Vehicle.current_status == status)
+        selected_statuses.add(status)
+    if statuses:
+        for s in statuses:
+            if s and s != 'ALL':
+                selected_statuses.add(s)
+    if selected_statuses:
+        q = q.filter(Vehicle.current_status.in_(list(selected_statuses)))
         
     return q.order_by(Vehicle.id.asc()).all()
 
@@ -69,7 +96,7 @@ def add_movement_hop(vehicle_id, source_location, destination_location,
                      dc_number=None, status='At Location', remarks=None):
     """
     Records a new hop in the vehicle's journey (e.g. Location A -> Location B -> OEM -> Location A).
-    Updates current_location, current_status, and movement summary on the vehicle.
+    Updates current_location, current_status, total_hops, and updated_at on the vehicle.
     """
     vehicle = db.session.get(Vehicle, vehicle_id)
     if not vehicle:
@@ -91,56 +118,43 @@ def add_movement_hop(vehicle_id, source_location, destination_location,
         work_done=work_done.strip() if work_done else None,
         dc_number=dc_number.strip() if dc_number else None,
         status=status.strip() if status else 'At Location',
-        remarks=remarks.strip() if remarks else None
+        remarks=remarks.strip() if remarks else (work_done.strip() if work_done else None)
     )
     db.session.add(hop)
     db.session.flush()
 
-    # Update vehicle's live current location and status
-    vehicle.current_location = destination_location.strip()
-    if status:
-        vehicle.current_status = status.strip()
-        
-    # If sent to customer/OEM, track customer dispatch date
-    if 'OEM' in destination_location.upper() or 'CUSTOMER' in destination_location.upper():
-        if dispatch_date:
-            vehicle.date_sent_to_customer = dispatch_date
-            
+    # Synchronize vehicle location and status from latest hop
     vehicle.update_from_latest_hop()
     db.session.commit()
     return hop
 
 def get_location_counts():
-    """Return dictionary of {location_name: vehicle_count}."""
+    """Return dictionary of {location_name: vehicle_count} considered strictly from current_status column."""
     results = db.session.query(
-        Vehicle.current_location,
+        Vehicle.current_status,
         func.count(Vehicle.id)
-    ).group_by(Vehicle.current_location).all()
+    ).filter(
+        Vehicle.current_status.isnot(None),
+        Vehicle.current_status != '',
+        Vehicle.current_status != 'NA'
+    ).group_by(Vehicle.current_status).all()
     
     counts = {}
     for loc, count in results:
-        key = loc if loc else 'UNASSIGNED'
-        counts[key] = count
+        key = str(loc).strip()
+        if key:
+            counts[key] = count
     return counts
 
 def get_distinct_locations():
-    """Returns a sorted list of all unique locations recorded across vehicles and movements."""
+    """Returns a sorted list of all unique locations recorded strictly in Vehicle.current_status."""
+    results = db.session.query(Vehicle.current_status).distinct().all()
     locs = set()
-    # From vehicle fields
-    for v in Vehicle.query.with_entities(Vehicle.receiving_location, Vehicle.outgoing_location, Vehicle.current_location).all():
-        for l in v:
-            if l and l.strip() and l.strip().upper() != 'NA':
-                locs.add(l.strip())
-    # From movements
-    for m in VehicleMovement.query.with_entities(VehicleMovement.source_location, VehicleMovement.destination_location).all():
-        for l in m:
-            if l and l.strip():
-                locs.add(l.strip())
-    
-    defaults = ['BOSCH PLANT', 'TATA MOTORS', 'NATRAX', 'MG, GUJRAT', 'MARUTI SUZUKI', 'ASHOK LEYLAND', 'WORKSHOP']
-    for d in defaults:
-        locs.add(d)
-        
+    for r in results:
+        val = r[0]
+        if val and str(val).strip() and str(val).strip().upper() != 'NA':
+            locs.add(str(val).strip())
+            
     return sorted(list(locs))
 
 def get_distinct_oems():

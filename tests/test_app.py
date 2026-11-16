@@ -76,10 +76,10 @@ class VehicleTrackingTestCase(unittest.TestCase):
             )
             self.assertEqual(hop1.destination_location, 'NATRAX TRACK')
             
-            # Verify vehicle current location updated
+            # Verify vehicle current location and current status updated from latest hop
             v_updated = db.session.get(Vehicle, v.id)
             self.assertEqual(v_updated.current_location, 'NATRAX TRACK')
-            self.assertEqual(v_updated.current_status, 'At Testing Track')
+            self.assertEqual(v_updated.current_status, 'NATRAX TRACK')
             self.assertEqual(len(v_updated.movements), initial_hops + 1)
 
             # Add Return Hop: NATRAX -> Return to Bosch Plant (Cyclic test)
@@ -96,7 +96,7 @@ class VehicleTrackingTestCase(unittest.TestCase):
             )
             v_updated2 = db.session.get(Vehicle, v.id)
             self.assertEqual(v_updated2.current_location, 'BOSCH PLANT')
-            self.assertEqual(v_updated2.current_status, 'Received Back')
+            self.assertEqual(v_updated2.current_status, 'BOSCH PLANT')
 
     def test_06_data_manager_grid_and_modification(self):
         """Test data manager grid and SQLite record modification."""
@@ -128,12 +128,13 @@ class VehicleTrackingTestCase(unittest.TestCase):
             self.assertEqual(v_check.remark, 'Updated via automated test')
 
     def test_07_dashboard_kiosk_stream(self):
-        """Test 24/7 TV Streamed Kiosk display route."""
+        """Test Kiosk Dashboard display route."""
         response = self.client.get('/dashboard/kiosk')
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'24/7 STREAMING ACTIVE', response.data)
-        self.assertIn(b'LOCATION-WISE VEHICLE QUANTITIES (LIVE)', response.data)
+        self.assertIn(b'LOCATION-WISE VEHICLE QUANTITIES', response.data)
         self.assertIn(b'LIVE MOVEMENT STREAM', response.data)
+        self.assertIn(b'LIVE UPDATES', response.data)
+        self.assertNotIn(b'24/7 STREAMING ACTIVE', response.data)
 
     def test_08_api_telemetry_json(self):
         """Test JSON telemetry endpoint powering the 24/7 screen."""
@@ -147,24 +148,171 @@ class VehicleTrackingTestCase(unittest.TestCase):
         self.assertGreater(data['total_vehicles'], 0)
 
     def test_09_excel_export(self):
-        """Test Excel export generation and structure."""
+        """Test normalized 2-sheet Excel export generation and structure."""
         with self.app.app_context():
             test_export_path = os.path.join(self.app.config['DATA_DIR'], 'test_export.xlsx')
             export_to_excel(test_export_path)
             self.assertTrue(os.path.exists(test_export_path))
 
             wb = openpyxl.load_workbook(test_export_path)
-            self.assertIn('Vehicle Master Data', wb.sheetnames)
-            self.assertIn('Movement Audit Log', wb.sheetnames)
+            self.assertIn('vehicles', wb.sheetnames)
+            self.assertIn('vehicle_movements', wb.sheetnames)
 
-            ws = wb['Vehicle Master Data']
-            self.assertEqual(ws.cell(row=1, column=1).value, 'SR.NO')
-            self.assertEqual(ws.cell(row=1, column=2).value, 'BOSCHVehicle Identification No')
-            self.assertEqual(ws.cell(row=1, column=10).value, 'INCOMING DATE')
-            self.assertEqual(ws.cell(row=1, column=18).value, 'RECEIVING LOCATION')
+            ws_v = wb['vehicles']
+            self.assertEqual(ws_v.cell(row=1, column=1).value, 'sr_no')
+            self.assertEqual(ws_v.cell(row=1, column=2).value, 'bosch_vin')
+            self.assertEqual(ws_v.cell(row=1, column=3).value, 'oem_id')
+            self.assertEqual(ws_v.cell(row=1, column=9).value, 'vehicle_material')
+            self.assertEqual(ws_v.cell(row=1, column=12).value, 'vehicle_issues')
+            self.assertEqual(ws_v.cell(row=1, column=16).value, 'current_location')
+
+            ws_m = wb['vehicle_movements']
+            self.assertEqual(ws_m.cell(row=1, column=1).value, 'id')
+            self.assertEqual(ws_m.cell(row=1, column=2).value, 'vehicle_id')
+            self.assertEqual(ws_m.cell(row=1, column=5).value, 'source_location')
+            self.assertEqual(ws_m.cell(row=1, column=6).value, 'destination_location')
             wb.close()
             if os.path.exists(test_export_path):
                 os.remove(test_export_path)
+
+    def test_10_vin_url_routing(self):
+        """Test accessing vehicle detail page by Bosch VIN string directly."""
+        response = self.client.get('/tracking/vehicle/CVP_2023_001')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'CVP_2023_001', response.data)
+        self.assertIn(b'ALTROZ CNG', response.data)
+
+    def test_11_universal_importer_legacy_auto_conversion(self):
+        """Test universal importer auto-converting legacy 25-column format into normalized 2 tables."""
+        from app.services.excel_service import import_excel_file
+        import pandas as pd
+
+        test_legacy_path = os.path.join(self.app.config['DATA_DIR'], 'test_legacy.xlsx')
+        legacy_data = [{
+            "SR.NO": "99",
+            "BOSCHVehicle Identification No": "CVP_LEGACY_099",
+            "OEM": "TATA",
+            "VEHICLE NAME ": "HARRIER EV",
+            "OEM Identification No": "EP99999",
+            "Type": "PP",
+            "BOSCH DC-1": "DC-LEG-01",
+            "BOSCH DC-2": "DC-LEG-02",
+            "Owner": "Test Engineer",
+            "INCOMING DATE": "01-Jan-24",
+            "CHASSIS NO": "CHASSIS99999",
+            "MATERIAL COME WITH VEHICLE": "Charging Gun, Spanner",
+            "Spare Parts Link": "NO SPARE PARTS",
+            "OUTGOING DATE": "15-Feb-24",
+            "OUTGOING LOCATION": "NATRAX",
+            "INCOMING DATE2": "20-Mar-24",
+            "CURRENT STATUS": "Received Back",
+            "RECEIVING LOCATION": "BOSCH PLANT",
+            "Date sent to customer": "",
+            "PDI STATUS": "Pass",
+            "VEHICLE PROBLEM/ISSUES": "None",
+            "WORK ORDER RECEIVED DATE": "05-Jan-24",
+            "TPM COMFIRMATION": "Confirmed",
+            "REMARK ": "Legacy format test upload",
+            "Movement_History": "Legacy history text to be dropped"
+        }]
+
+        df_legacy = pd.DataFrame(legacy_data)
+        df_legacy.to_excel(test_legacy_path, index=False)
+
+        with self.app.app_context():
+            res = import_excel_file(test_legacy_path, mode='upsert')
+            self.assertGreater(res['created'] + res['updated'], 0)
+
+            v = Vehicle.query.filter_by(bosch_vin='CVP_LEGACY_099').first()
+            self.assertIsNotNone(v)
+            self.assertEqual(v.vehicle_name, 'HARRIER EV')
+            self.assertEqual(v.oem_id, 'EP99999')
+            self.assertEqual(v.vehicle_material, 'Charging Gun, Spanner')
+            # Verify legacy hops were auto-converted into discrete movements
+            self.assertGreaterEqual(len(v.movements), 2)
+            self.assertEqual(v.movements[0].destination_location, 'BOSCH PLANT')
+            self.assertEqual(v.movements[1].destination_location, 'NATRAX')
+
+        if os.path.exists(test_legacy_path):
+            os.remove(test_legacy_path)
+
+    def test_12_shortform_number_and_status_locations(self):
+        """Test shortform number formatter and locations from current_status."""
+        with self.app.app_context():
+            from app.services.tracking_service import get_location_counts
+            filter_fn = self.app.jinja_env.filters.get('short_num')
+            self.assertIsNotNone(filter_fn)
+            self.assertEqual(filter_fn(1100), '1.1k')
+            self.assertEqual(filter_fn(1000), '1k')
+            self.assertEqual(filter_fn(25400), '25.4k')
+            self.assertEqual(filter_fn(1500000), '1.5M')
+            self.assertEqual(filter_fn(2000000000), '2B')
+            self.assertEqual(filter_fn(42), '42')
+
+            # Verify locations are strictly from current_status
+            counts = get_location_counts()
+            self.assertIn('TATA MOTORS', counts)
+
+    def test_13_tracking_multiselect_filters(self):
+        """Test multi-select filter query on tracking endpoint."""
+        response = self.client.get('/tracking/?location=TATA+MOTORS&location=NATRAX')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Location: TATA MOTORS', response.data)
+        self.assertIn(b'Location: NATRAX', response.data)
+
+        # Test home page has clean placeholder and no Quick Lookup
+        resp_home = self.client.get('/')
+        self.assertEqual(resp_home.status_code, 200)
+        self.assertIn(b'Enter Bosch VIN (e.g. CVP_2023_001) or OEM ID (e.g. EP07116)', resp_home.data)
+        self.assertNotIn(b'Quick lookup:', resp_home.data)
+        self.assertIn(b'Operating Locations', resp_home.data)
+        self.assertIn(b'Quality &amp; TPM Alerts', resp_home.data)
+
+    def test_14_settings_page_and_theme_cookies(self):
+        """Test separate software and dashboard theme configuration and cookie persistence."""
+        # 1. Test GET /settings
+        response = self.client.get('/settings')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Display & Theme Settings', response.data)
+        self.assertIn(b'Main Software Theme', response.data)
+        self.assertIn(b'Dashboard Theme (24/7 Kiosk)', response.data)
+        self.assertIn(b'software_theme', response.data)
+        self.assertIn(b'dashboard_theme', response.data)
+
+        # 2. Test POST /settings with custom themes
+        post_resp = self.client.post('/settings', data={
+            'software_theme': 'dark',
+            'dashboard_theme': 'light'
+        }, follow_redirects=False)
+        self.assertEqual(post_resp.status_code, 302)
+        
+        # Verify cookies set on response
+        cookies = post_resp.headers.getlist('Set-Cookie')
+        cookie_str = ' '.join(cookies)
+        self.assertIn('software_theme=dark', cookie_str)
+        self.assertIn('dashboard_theme=light', cookie_str)
+
+        # 3. Test that base template respects software_theme cookie
+        self.client.set_cookie('software_theme', 'dark')
+        home_resp = self.client.get('/')
+        self.assertEqual(home_resp.status_code, 200)
+        self.assertIn(b'data-bs-theme="dark"', home_resp.data)
+
+        # 4. Test that kiosk template respects dashboard_theme cookie
+        self.client.set_cookie('dashboard_theme', 'light')
+        kiosk_resp = self.client.get('/dashboard/kiosk')
+        self.assertEqual(kiosk_resp.status_code, 200)
+        self.assertIn(b'data-bs-theme="light"', kiosk_resp.data)
+
+        # 5. Test AJAX /api/theme endpoint
+        api_resp = self.client.post('/api/theme', json={
+            'software_theme': 'light',
+            'dashboard_theme': 'dark'
+        })
+        self.assertEqual(api_resp.status_code, 200)
+        api_data = api_resp.get_json()
+        self.assertEqual(api_data['software_theme'], 'light')
+        self.assertEqual(api_data['dashboard_theme'], 'dark')
 
 if __name__ == '__main__':
     unittest.main()

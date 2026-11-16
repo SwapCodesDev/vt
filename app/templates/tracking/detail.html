@@ -22,11 +22,13 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newHopModal">
-                <i class="bi bi-plus me-1"></i> Log Movement Hop
+            <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#newHopModal">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                <span>Log Movement Hop</span>
             </button>
-            <a href="{{ url_for('data_manager.edit_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-pencil me-1"></i> Edit Data
+            <a href="{{ url_for('data_manager.edit_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+                <i data-lucide="pencil" style="width: 14px; height: 14px;"></i>
+                <span>Edit Data</span>
             </a>
             <a href="{{ url_for('tracking.list_vehicles') }}" class="btn btn-sm btn-outline-secondary">
                 Back to Fleet
@@ -74,29 +76,29 @@
                             <tr><td class="text-muted px-3" style="width: 45%;">Bosch Vehicle ID:</td><td class="font-monospace fw-bold px-3">{{ vehicle.bosch_vin }}</td></tr>
                             <tr><td class="text-muted px-3">OEM:</td><td class="px-3">{{ vehicle.oem }}</td></tr>
                             <tr><td class="text-muted px-3">Vehicle Name:</td><td class="fw-semibold px-3">{{ vehicle.vehicle_name }}</td></tr>
-                            <tr><td class="text-muted px-3">OEM Identification No:</td><td class="font-monospace px-3">{{ vehicle.oem_id_no or '-' }}</td></tr>
-                            <tr><td class="text-muted px-3">Type:</td><td class="px-3">{{ vehicle.vehicle_type or 'PP' }}</td></tr>
+                            <tr><td class="text-muted px-3">OEM ID:</td><td class="font-monospace px-3">{{ vehicle.oem_id or vehicle.oem_id_no or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Type:</td><td class="px-3">{{ vehicle.type or vehicle.vehicle_type or 'PP' }}</td></tr>
                             <tr><td class="text-muted px-3">Chassis No:</td><td class="font-monospace px-3">{{ vehicle.chassis_no or '-' }}</td></tr>
                             <tr><td class="text-muted px-3">Owner:</td><td class="px-3">{{ vehicle.owner or '-' }}</td></tr>
 
-                            <!-- Logistics & Start Points -->
-                            <tr class="table-light"><td colspan="2" class="fw-bold text-muted small text-uppercase py-2 px-3">2. Logistics &amp; Start Points</td></tr>
+                            <!-- Logistics & Current Location -->
+                            <tr class="table-light"><td colspan="2" class="fw-bold text-muted small text-uppercase py-2 px-3">2. Status &amp; Location</td></tr>
                             <tr><td class="text-muted px-3">Receiving Location (Start Point):</td><td class="fw-bold px-3 text-dark">{{ vehicle.receiving_location or 'BOSCH PLANT' }}</td></tr>
                             <tr><td class="text-muted px-3">Incoming Date (Start):</td><td class="font-monospace px-3">{{ vehicle.incoming_date or '-' }}</td></tr>
-                            <tr><td class="text-muted px-3">Outgoing Location:</td><td class="px-3">{{ vehicle.outgoing_location or '-' }}</td></tr>
-                            <tr><td class="text-muted px-3">Outgoing Date:</td><td class="font-monospace px-3">{{ vehicle.outgoing_date or '-' }}</td></tr>
-                            <tr><td class="text-muted px-3">Incoming Date 2:</td><td class="font-monospace px-3">{{ vehicle.incoming_date2 or '-' }}</td></tr>
-                            <tr><td class="text-muted px-3">Date Sent to Customer:</td><td class="font-monospace px-3">{{ vehicle.date_sent_to_customer or '-' }}</td></tr>
-                            <tr><td class="text-muted px-3">Bosch DC-1 / DC-2:</td><td class="font-monospace px-3">{{ vehicle.bosch_dc1 or '-' }} / {{ vehicle.bosch_dc2 or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Current Location:</td><td class="fw-bold text-primary px-3">{{ vehicle.current_location }}</td></tr>
+                            <tr><td class="text-muted px-3">Current Status:</td><td class="px-3"><span class="badge bg-secondary font-monospace">{{ vehicle.current_status }}</span></td></tr>
+                            <tr><td class="text-muted px-3">Total Hops:</td><td class="font-monospace fw-bold px-3">{{ vehicle.total_hops }}</td></tr>
+                            <tr><td class="text-muted px-3">Last Updated:</td><td class="font-monospace small text-muted px-3">{{ vehicle.updated_at.strftime('%Y-%m-%d %H:%M') if vehicle.updated_at else '-' }}</td></tr>
 
-                            <!-- Accessories & Quality -->
+                            <!-- Equipment & Quality -->
                             <tr class="table-light"><td colspan="2" class="fw-bold text-muted small text-uppercase py-2 px-3">3. Equipment &amp; Quality</td></tr>
-                            <tr><td class="text-muted px-3">Materials Come With:</td><td class="small px-3">{{ vehicle.material_with_vehicle or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Vehicle Material:</td><td class="small px-3">{{ vehicle.vehicle_material or vehicle.material_with_vehicle or '-' }}</td></tr>
                             <tr><td class="text-muted px-3">Spare Parts Link:</td><td class="small px-3">{{ vehicle.spare_parts_link or '-' }}</td></tr>
                             <tr><td class="text-muted px-3">PDI Status:</td><td class="px-3">{{ vehicle.pdi_status or '-' }}</td></tr>
+                            <tr><td class="text-muted px-3">Work Order Date:</td><td class="font-monospace px-3">{{ vehicle.work_order_received_date or '-' }}</td></tr>
                             <tr><td class="text-muted px-3">TPM Confirmation:</td><td class="px-3">{{ vehicle.tpm_confirmation or '-' }}</td></tr>
-                            {% if vehicle.vehicle_problem_issues %}
-                            <tr class="table-danger"><td class="text-danger fw-bold px-3">Issues:</td><td class="text-danger small px-3">{{ vehicle.vehicle_problem_issues }}</td></tr>
+                            {% if vehicle.vehicle_issues or vehicle.vehicle_problem_issues %}
+                            <tr class="table-danger"><td class="text-danger fw-bold px-3">Vehicle Issues:</td><td class="text-danger small px-3">{{ vehicle.vehicle_issues or vehicle.vehicle_problem_issues }}</td></tr>
                             {% endif %}
                             <tr><td class="text-muted px-3">Remark:</td><td class="small px-3">{{ vehicle.remark or '-' }}</td></tr>
                         </tbody>
@@ -120,7 +122,7 @@
                                     #{{ m.hop_sequence }}: {{ m.destination_location }}
                                 </span>
                                 {% if not loop.last %}
-                                    <i class="bi bi-chevron-right text-muted mx-1 small"></i>
+                                    <i data-lucide="chevron-right" class="text-muted mx-1" style="width: 14px; height: 14px;"></i>
                                 {% endif %}
                             </div>
                         {% endfor %}
@@ -132,8 +134,9 @@
             <div class="card border rounded-3 bg-white shadow-sm">
                 <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0 text-dark">Movement Hop History</h6>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newHopModal">
-                        <i class="bi bi-plus me-1"></i> Add Hop
+                    <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#newHopModal">
+                        <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                        <span>Add Hop</span>
                     </button>
                 </div>
 

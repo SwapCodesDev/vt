@@ -70,6 +70,25 @@ h1, h2, h3, h4, h5, h6 {
    CLEAN TOP NAVBAR
    ========================================================================== */
 
+/* Multi-color Authentic Bosch Gradient Ribbon Strip */
+.bosch-color-strip {
+    height: 4px;
+    width: 100%;
+    background-image: url('../svg/bosch-header-line.svg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: block;
+    flex-shrink: 0;
+}
+
+.bosch-logo-img {
+    height: 18px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
 .main-navbar {
     background: #0f172a;
     border-bottom: 1px solid #1e293b;
@@ -375,3 +394,154 @@ h1, h2, h3, h4, h5, h6 {
     border-top: 1px solid var(--color-border);
     padding-block: 14px;
 }
+
+/* ==========================================================================
+   SOFTWARE DARK THEME [data-bs-theme="dark"]
+   Dedicated sleek dark mode for main application interface
+   ========================================================================== */
+
+[data-bs-theme="dark"] {
+    --color-surface-bg: #090d16;
+    --color-surface-card: #101625;
+    --color-border: #1e293b;
+    --color-border-subtle: #162032;
+    --color-text-main: #f8fafc;
+    --color-text-muted: #94a3b8;
+    
+    color-scheme: dark;
+}
+
+[data-bs-theme="dark"] body {
+    background-color: var(--color-surface-bg);
+    color: var(--color-text-main);
+}
+
+[data-bs-theme="dark"] .bg-white {
+    background-color: var(--color-surface-card) !important;
+}
+
+[data-bs-theme="dark"] .text-dark {
+    color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .text-muted {
+    color: #94a3b8 !important;
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: var(--color-surface-card);
+    border-color: var(--color-border) !important;
+    color: var(--color-text-main);
+}
+
+[data-bs-theme="dark"] .stat-card {
+    background: var(--color-surface-card);
+    border-color: var(--color-border);
+}
+
+[data-bs-theme="dark"] .stat-card .stat-value {
+    color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .clean-table thead th {
+    background: #0d1424;
+    color: #94a3b8;
+    border-bottom: 1px solid var(--color-border);
+}
+
+[data-bs-theme="dark"] .clean-table tbody td {
+    color: #f8fafc;
+    border-bottom: 1px solid #162032;
+}
+
+[data-bs-theme="dark"] .clean-table tbody tr:hover td {
+    background-color: #162032;
+}
+
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: #0d1424;
+    border-color: #1e293b;
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: #0d1424;
+    border-color: #3b82f6;
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"] .input-group-text {
+    background-color: #162032;
+    border-color: #1e293b;
+    color: #94a3b8;
+}
+
+[data-bs-theme="dark"] .modal-content {
+    background-color: var(--color-surface-card);
+    border-color: var(--color-border);
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"] .modal-header,
+[data-bs-theme="dark"] .modal-footer {
+    border-color: var(--color-border);
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: var(--color-surface-card);
+    border-color: var(--color-border);
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover,
+[data-bs-theme="dark"] .dropdown-item:focus {
+    background-color: #1e293b;
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"] .badge.bg-light {
+    background-color: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+}
+
+[data-bs-theme="dark"] .timeline-box {
+    background: var(--color-surface-card);
+    border-color: var(--color-border);
+}
+
+[data-bs-theme="dark"] .timeline-dot {
+    background: var(--color-surface-card);
+    border-color: #475569;
+    color: #cbd5e1;
+}
+
+[data-bs-theme="dark"] .timeline-dot.start-dot {
+    background: #064e3b;
+    border-color: #10b981;
+    color: #10b981;
+}
+
+[data-bs-theme="dark"] .main-footer {
+    background: #0c1220;
+    border-top: 1px solid var(--color-border);
+}
+
+[data-bs-theme="dark"] .border-bottom {
+    border-color: var(--color-border) !important;
+}
+
+[data-bs-theme="dark"] .border-top {
+    border-color: var(--color-border) !important;
+}
+
+[data-bs-theme="dark"] .border {
+    border-color: var(--color-border) !important;
+}
+

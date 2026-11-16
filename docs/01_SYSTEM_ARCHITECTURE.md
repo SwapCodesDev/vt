@@ -30,12 +30,12 @@ The **Bosch Vehicle Tracking & Live Telemetry System** is a standard Flask web a
 |                             DATA PERSISTENCE LAYER                              |
 |                                                                                 |
 |  [Inbuilt SQLite Database: data/vehicle_tracking.db]                            |
-|  - Table: vehicles (25 Master Excel Attributes + Timestamps)                    |
+|  - Table: vehicles (Initial entry specifications in lowercase_with_underscore)  |
 |  - Table: vehicle_movements (Normalized 1-to-many Hops: Origin, Dest, Dates)   |
 |                                                                                 |
 |  [Master Excel Workbooks: data/Master_Vehicle_Data.xlsx]                        |
-|  - Sheet 1: Vehicle Master Data (Exact 25-column corporate layout)              |
-|  - Sheet 2: Movement Audit Log (Granular hop sequence audit trail)              |
+|  - Sheet 1: vehicles (Normalized vehicle specifications)                        |
+|  - Sheet 2: vehicle_movements (Granular hop sequence audit trail)               |
 +---------------------------------------------------------------------------------+
 ```
 
@@ -49,11 +49,16 @@ The **Bosch Vehicle Tracking & Live Telemetry System** is a standard Flask web a
 - Automatically ensures storage directories (`data/`, `data/uploads/`, `data/exports/`) exist and initializes SQLite database tables on startup.
 
 ### 2. Modular Blueprints
-- `app/blueprints/main`: Root landing, KPI summary, and instant VIN/OEM ID router.
+- `app/blueprints/main`: Root landing, KPI summary, instant VIN/OEM ID router, and `/settings` display preferences hub.
 - `app/blueprints/tracking`: Fleet inventory, location-based filtering, 360° vehicle profiles, and hop logging engine.
 - `app/blueprints/data_manager`: Data management hub, Excel import (upsert/overwrite), Excel export, and direct SQLite CRUD.
 - `app/blueprints/dashboard`: Standard in-app dashboard (`/dashboard`) and dedicated 24/7 TV kiosk monitor (`/dashboard/kiosk`).
-- `app/blueprints/api`: High-performance JSON endpoints for live telemetry polling, autocomplete search, and inline record updates.
+- `app/blueprints/api`: High-performance JSON endpoints for live telemetry polling, autocomplete search, inline record updates, and theme persistence (`/api/theme`).
+
+### 3. Dual Independent Theme Architecture
+- **Main Software Theme**: Supports `Light` (default) and `Dark` modes across all desk-facing pages (Home, Fleet Tracking, Data Manager, Detail views).
+- **Dashboard Kiosk Theme**: Supports `Dark` (default) and `Light` modes independently for the 24/7 TV kiosk wall monitor.
+- **Zero-FOUC Persistence**: Synchronized seamlessly via HTTP cookies (`software_theme`, `dashboard_theme`) and client-side `localStorage` with instant early `<script>` evaluation before DOM paint.
 
 ### 3. Service Layer Architecture
 - Business logic is strictly decoupled from presentation controllers:

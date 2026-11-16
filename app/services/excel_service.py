@@ -1,42 +1,53 @@
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import pandas as pd
 from app.models import db, Vehicle, VehicleMovement
 
-EXCEL_COLUMNS = [
-    "SR.NO",
-    "BOSCHVehicle Identification No",
-    "OEM",
-    "VEHICLE NAME",
-    "OEM Identification No",
-    "Type",
-    "BOSCH DC-1",
-    "BOSCH DC-2",
-    "Owner",
-    "INCOMING DATE",
-    "CHASSIS NO",
-    "MATERIAL COME WITH VEHICLE",
-    "Spare Parts Link",
-    "OUTGOING DATE",
-    "OUTGOING LOCATION",
-    "INCOMING DATE2",
-    "CURRENT STATUS",
-    "RECEIVING LOCATION",
-    "Date sent to customer",
-    "PDI STATUS",
-    "VEHICLE PROBLEM/ISSUES",
-    "WORK ORDER RECEIVED DATE",
-    "TPM COMFIRMATION",
-    "REMARK",
-    "Movement_History"
+# Standardized 2-Table Column Schemas (All lowercase with _ as spacebar)
+VEHICLES_COLUMNS = [
+    "sr_no",
+    "bosch_vin",
+    "oem_id",
+    "oem",
+    "vehicle_name",
+    "type",
+    "owner",
+    "chassis_no",
+    "vehicle_material",
+    "spare_parts_link",
+    "pdi_status",
+    "vehicle_issues",
+    "work_order_received_date",
+    "tpm_confirmation",
+    "current_status",
+    "current_location",
+    "remark",
+    "total_hops",
+    "updated_at"
+]
+
+MOVEMENTS_COLUMNS = [
+    "id",
+    "vehicle_id",
+    "bosch_vin",
+    "hop_sequence",
+    "source_location",
+    "destination_location",
+    "dispatch_date",
+    "arrival_date",
+    "dc_number",
+    "movement_purpose",
+    "status",
+    "remarks",
+    "created_at"
 ]
 
 def clean_header(header_str):
-    """Normalize headers by removing newlines, multiple spaces, quotes, and case."""
+    """Normalize headers by removing newlines, extra whitespace, and symbols."""
     if not isinstance(header_str, str):
         return ""
     cleaned = re.sub(r'[\r\n\t]+', ' ', header_str)
@@ -44,95 +55,174 @@ def clean_header(header_str):
     return cleaned
 
 def map_column_name(header):
-    """Map cleaned Excel column string to standardized internal field key."""
-    h = clean_header(header).upper()
-    if "SR.NO" in h or "SR NO" in h or "SERIAL" in h:
+    """
+    Map an incoming Excel column string to normalized internal field keys.
+    Handles both new lowercase_with_underscore schema and legacy 25-column format.
+    """
+    raw = clean_header(header)
+    h = raw.lower().replace(" ", "_").replace(".", "_").replace("-", "_").replace("/", "_")
+    h_upper = raw.upper()
+
+    # Exact lowercase matches
+    if h in ("sr_no", "srno", "serial_no"):
         return "sr_no"
-    if "BOSCH" in h and ("IDENTIFICATION" in h or "VIN" in h or "VEHICLE" in h) and "DC" not in h:
+    if h in ("bosch_vin", "boschvin", "vin"):
         return "bosch_vin"
-    if h == "OEM":
+    if h in ("oem_id", "oemid", "oem_id_no"):
+        return "oem_id"
+    if h == "oem":
         return "oem"
-    if "VEHICLE NAME" in h or "MODEL" in h:
+    if h in ("vehicle_name", "vehiclename", "model"):
         return "vehicle_name"
-    if "OEM IDENTIFICATION" in h or "OEM ID" in h or "OEM NO" in h:
-        return "oem_id_no"
-    if h == "TYPE":
-        return "vehicle_type"
-    if "BOSCH" in h and "DC-1" in h:
-        return "bosch_dc1"
-    if "BOSCH" in h and "DC-2" in h:
-        return "bosch_dc2"
-    if "OWNER" in h:
+    if h in ("type", "vehicle_type"):
+        return "type"
+    if h == "owner":
         return "owner"
-    if "INCOMING DATE2" in h:
-        return "incoming_date2"
-    if "INCOMING DATE" in h:
-        return "incoming_date"
-    if "CHASSIS" in h:
+    if h in ("chassis_no", "chassisno", "chassis"):
         return "chassis_no"
-    if "MATERIAL" in h:
-        return "material_with_vehicle"
-    if "SPARE" in h:
+    if h in ("vehicle_material", "material_come_with_vehicle", "material"):
+        return "vehicle_material"
+    if h in ("spare_parts_link", "sparepartslink"):
         return "spare_parts_link"
-    if "OUTGOING DATE" in h:
-        return "outgoing_date"
-    if "OUTGOING LOCATION" in h:
-        return "outgoing_location"
-    if "CURRENT STATUS" in h or "STATUS" in h:
-        return "current_status"
-    if "RECEIVING LOCATION" in h:
-        return "receiving_location"
-    if "SENT TO CUSTOMER" in h:
-        return "date_sent_to_customer"
-    if "PDI" in h:
+    if h in ("pdi_status", "pdistatus"):
         return "pdi_status"
-    if "PROBLEM" in h or "ISSUE" in h:
-        return "vehicle_problem_issues"
-    if "WORK ORDER" in h:
+    if h in ("vehicle_issues", "vehicle_problem_issues", "issues", "problems"):
+        return "vehicle_issues"
+    if h in ("work_order_received_date", "work_order_date"):
         return "work_order_received_date"
-    if "TPM" in h:
+    if h in ("tpm_confirmation", "tpm"):
         return "tpm_confirmation"
-    if "REMARK" in h:
+    if h in ("current_status", "status"):
+        return "current_status"
+    if h in ("current_location", "location"):
+        return "current_location"
+    if h in ("remark", "remarks"):
         return "remark"
-    if "MOVEMENT" in h:
-        return "movement_history"
+    if h in ("total_hops", "hops"):
+        return "total_hops"
+
+    # Movement columns (if imported)
+    if h == "vehicle_id":
+        return "vehicle_id"
+    if h in ("hop_sequence", "hop_seq", "hop"):
+        return "hop_sequence"
+    if h in ("source_location", "source", "from_location"):
+        return "source_location"
+    if h in ("destination_location", "destination", "to_location"):
+        return "destination_location"
+    if h in ("dispatch_date", "dispatch"):
+        return "dispatch_date"
+    if h in ("arrival_date", "arrival"):
+        return "arrival_date"
+    if h in ("dc_number", "dc_no"):
+        return "dc_number"
+    if h in ("movement_purpose", "purpose"):
+        return "movement_purpose"
+
+    # Legacy 25-column mapping for auto-conversion
+    if "BOSCH" in h_upper and ("IDENTIFICATION" in h_upper or "VIN" in h_upper) and "DC" not in h_upper:
+        return "bosch_vin"
+    if "OEM IDENTIFICATION" in h_upper or "OEM ID" in h_upper:
+        return "oem_id"
+    if "MATERIAL COME" in h_upper:
+        return "vehicle_material"
+    if "PROBLEM" in h_upper or "ISSUES" in h_upper:
+        return "vehicle_issues"
+
+    # Legacy hop fields for auto-conversion
+    if "RECEIVING LOCATION" in h_upper:
+        return "legacy_receiving_location"
+    if "INCOMING DATE2" in h_upper:
+        return "legacy_incoming_date2"
+    if "INCOMING DATE" in h_upper:
+        return "legacy_incoming_date"
+    if "OUTGOING LOCATION" in h_upper:
+        return "legacy_outgoing_location"
+    if "OUTGOING DATE" in h_upper:
+        return "legacy_outgoing_date"
+    if "SENT TO CUSTOMER" in h_upper:
+        return "legacy_date_sent_to_customer"
+    if "BOSCH" in h_upper and "DC-1" in h_upper:
+        return "legacy_bosch_dc1"
+    if "BOSCH" in h_upper and "DC-2" in h_upper:
+        return "legacy_bosch_dc2"
+
     return None
 
 def import_excel_file(file_path, mode='upsert'):
     """
-    Import vehicle records from an Excel or CSV file.
-    mode: 'upsert' (update existing VIN or insert new) or 'overwrite' (wipe existing and reload)
+    Universal importer supporting:
+    1. New multi-sheet format ('vehicles' and 'vehicle_movements')
+    2. Single-sheet format with normalized lowercase_with_underscore headers
+    3. Legacy 25-column format with automatic conversion to 2-table schema
     """
-    # Load with pandas to support csv, xlsx, xls
-    if file_path.endswith('.csv'):
-        df = pd.read_csv(file_path, dtype=str)
-    else:
-        df = pd.read_excel(file_path, dtype=str)
-
-    # Fill NaN with empty string
-    df = df.fillna('')
-
-    # Map dataframe columns to model attributes
-    col_mapping = {}
-    for col in df.columns:
-        mapped_key = map_column_name(col)
-        if mapped_key:
-            col_mapping[col] = mapped_key
+    created_count = 0
+    updated_count = 0
+    total_processed = 0
 
     if mode == 'overwrite':
         VehicleMovement.query.delete()
         Vehicle.query.delete()
         db.session.commit()
 
+    if file_path.endswith('.csv'):
+        # CSV is single sheet
+        df = pd.read_csv(file_path, dtype=str).fillna('')
+        res = _import_single_sheet_or_legacy(df)
+        created_count += res['created']
+        updated_count += res['updated']
+        total_processed += res['total_processed']
+    else:
+        with pd.ExcelFile(file_path) as excel_file:
+            sheet_names = [s.strip().lower() for s in excel_file.sheet_names]
+
+            if 'vehicles' in sheet_names:
+                # Normalized Multi-Sheet Format
+                sheet_map = {s.strip().lower(): s for s in excel_file.sheet_names}
+                df_vehicles = pd.read_excel(excel_file, sheet_name=sheet_map['vehicles'], dtype=str).fillna('')
+                res_v = _import_vehicles_sheet(df_vehicles)
+                created_count += res_v['created']
+                updated_count += res_v['updated']
+                total_processed += res_v['total_processed']
+
+                if 'vehicle_movements' in sheet_names:
+                    df_movements = pd.read_excel(excel_file, sheet_name=sheet_map['vehicle_movements'], dtype=str).fillna('')
+                    _import_movements_sheet(df_movements)
+            else:
+                # First/Active Sheet (Check if legacy or normalized)
+                df = pd.read_excel(excel_file, sheet_name=0, dtype=str).fillna('')
+                res = _import_single_sheet_or_legacy(df)
+                created_count += res['created']
+                updated_count += res['updated']
+                total_processed += res['total_processed']
+
+    db.session.commit()
+    return {
+        'created': created_count,
+        'updated': updated_count,
+        'total_processed': total_processed
+    }
+
+def _import_single_sheet_or_legacy(df):
+    """Handle a single tabular sheet, auto-converting legacy columns if present."""
+    col_mapping = {}
+    is_legacy = False
+
+    for col in df.columns:
+        mapped = map_column_name(col)
+        if mapped:
+            col_mapping[col] = mapped
+            if mapped.startswith('legacy_'):
+                is_legacy = True
+
     created_count = 0
     updated_count = 0
 
-    for _, row in df.iterrows():
+    for idx, row in df.iterrows():
         data = {col_mapping[c]: str(row[c]).strip() for c in df.columns if c in col_mapping}
-        
         bosch_vin = data.get('bosch_vin')
         if not bosch_vin:
-            continue  # Skip rows without Bosch VIN
+            continue
 
         vehicle = Vehicle.query.filter_by(bosch_vin=bosch_vin).first()
         is_new = False
@@ -141,129 +231,266 @@ def import_excel_file(file_path, mode='upsert'):
             db.session.add(vehicle)
             is_new = True
 
-        # Assign fields
-        if 'sr_no' in data and data['sr_no']:
-            try:
-                vehicle.sr_no = int(float(data['sr_no']))
-            except (ValueError, TypeError):
-                pass
-        
-        vehicle.oem = data.get('oem', vehicle.oem or 'Unknown')
-        vehicle.vehicle_name = data.get('vehicle_name', vehicle.vehicle_name or 'Unknown')
-        vehicle.oem_id_no = data.get('oem_id_no', vehicle.oem_id_no)
-        vehicle.vehicle_type = data.get('vehicle_type', vehicle.vehicle_type)
-        vehicle.bosch_dc1 = data.get('bosch_dc1', vehicle.bosch_dc1)
-        vehicle.bosch_dc2 = data.get('bosch_dc2', vehicle.bosch_dc2)
-        vehicle.owner = data.get('owner', vehicle.owner)
-        
-        # Start points as specified in requirements
-        vehicle.incoming_date = data.get('incoming_date', vehicle.incoming_date)
-        vehicle.receiving_location = data.get('receiving_location', vehicle.receiving_location)
-        
-        vehicle.chassis_no = data.get('chassis_no', vehicle.chassis_no)
-        vehicle.material_with_vehicle = data.get('material_with_vehicle', vehicle.material_with_vehicle)
-        vehicle.spare_parts_link = data.get('spare_parts_link', vehicle.spare_parts_link)
-        vehicle.outgoing_date = data.get('outgoing_date', vehicle.outgoing_date)
-        vehicle.outgoing_location = data.get('outgoing_location', vehicle.outgoing_location)
-        vehicle.incoming_date2 = data.get('incoming_date2', vehicle.incoming_date2)
-        vehicle.current_status = data.get('current_status', vehicle.current_status) or 'Active'
-        vehicle.date_sent_to_customer = data.get('date_sent_to_customer', vehicle.date_sent_to_customer)
-        vehicle.pdi_status = data.get('pdi_status', vehicle.pdi_status)
-        vehicle.vehicle_problem_issues = data.get('vehicle_problem_issues', vehicle.vehicle_problem_issues)
-        vehicle.work_order_received_date = data.get('work_order_received_date', vehicle.work_order_received_date)
-        vehicle.tpm_confirmation = data.get('tpm_confirmation', vehicle.tpm_confirmation)
-        vehicle.remark = data.get('remark', vehicle.remark)
-        
-        # Resolve initial current_location
-        if vehicle.outgoing_location and vehicle.outgoing_location != 'NA':
-            vehicle.current_location = vehicle.outgoing_location
-        elif vehicle.receiving_location:
-            vehicle.current_location = vehicle.receiving_location
-        else:
-            vehicle.current_location = 'BOSCH PLANT'
-
+        # Assign Vehicle Details
+        _assign_vehicle_fields(vehicle, data, idx + 1)
         db.session.flush()
 
-        # Build initial multi-hop movement logs if none exist
-        if is_new or len(vehicle.movements) == 0:
-            hop_seq = 1
-            start_loc = vehicle.receiving_location or 'BOSCH WORKSHOP'
-            start_date = vehicle.incoming_date or 'N/A'
-            
-            # Hop 1: Genesis Hop (Receiving location + incoming date)
-            hop1 = VehicleMovement(
-                vehicle_id=vehicle.id,
-                hop_sequence=hop_seq,
-                source_location='OEM / Inbound Transit',
-                destination_location=start_loc,
-                arrival_date=start_date,
-                movement_purpose='Initial Receipt at Facility',
-                work_done='Initial inspection & check-in',
-                dc_number=vehicle.bosch_dc1 or '',
-                status='Received',
-                remarks='Genesis hop from incoming master data'
-            )
-            db.session.add(hop1)
-            hop_seq += 1
+        # Handle Hops: If legacy, auto-convert into structured movements
+        if is_legacy:
+            _auto_convert_legacy_hops(vehicle, data, is_new)
+        else:
+            # If new normalized sheet without movements sheet, ensure at least Genesis Hop #1
+            if is_new or len(vehicle.movements) == 0:
+                _ensure_genesis_hop(vehicle, data)
 
-            # Hop 2: Outgoing Hop (if outgoing date/location provided)
-            if vehicle.outgoing_location and vehicle.outgoing_location.upper() not in ('NA', '', 'NONE'):
-                hop2 = VehicleMovement(
-                    vehicle_id=vehicle.id,
-                    hop_sequence=hop_seq,
-                    source_location=start_loc,
-                    destination_location=vehicle.outgoing_location,
-                    dispatch_date=vehicle.outgoing_date or '',
-                    arrival_date=vehicle.outgoing_date or '',
-                    movement_purpose='Dispatched for Testing / OEM Return',
-                    work_done='Dispatched from facility',
-                    dc_number=vehicle.bosch_dc2 or vehicle.bosch_dc1 or '',
-                    status='Dispatched',
-                    remarks='Outgoing transfer recorded from master data'
-                )
-                db.session.add(hop2)
-                hop_seq += 1
-                vehicle.current_location = vehicle.outgoing_location
-
-            # Hop 3: Incoming Date 2 (if re-entered)
-            if vehicle.incoming_date2 and vehicle.incoming_date2.upper() not in ('NA', '', 'NONE'):
-                hop3 = VehicleMovement(
-                    vehicle_id=vehicle.id,
-                    hop_sequence=hop_seq,
-                    source_location=vehicle.outgoing_location or 'External Location',
-                    destination_location=vehicle.receiving_location or 'BOSCH PLANT',
-                    arrival_date=vehicle.incoming_date2,
-                    movement_purpose='Re-entry for subsequent work/evaluation',
-                    work_done='Vehicle returned from external location',
-                    status='Received Back',
-                    remarks='Second incoming cycle from master data'
-                )
-                db.session.add(hop3)
-                vehicle.current_location = vehicle.receiving_location or 'BOSCH PLANT'
-
-            db.session.flush()
-            vehicle.update_from_latest_hop()
+        vehicle.update_from_latest_hop()
 
         if is_new:
             created_count += 1
         else:
             updated_count += 1
 
-    db.session.commit()
-    return {'created': created_count, 'updated': updated_count, 'total_processed': len(df)}
+    return {
+        'created': created_count,
+        'updated': updated_count,
+        'total_processed': len(df)
+    }
+
+def _import_vehicles_sheet(df):
+    """Import records from normalized 'vehicles' sheet."""
+    col_mapping = {}
+    for col in df.columns:
+        mapped = map_column_name(col)
+        if mapped:
+            col_mapping[col] = mapped
+
+    created_count = 0
+    updated_count = 0
+
+    for idx, row in df.iterrows():
+        data = {col_mapping[c]: str(row[c]).strip() for c in df.columns if c in col_mapping}
+        bosch_vin = data.get('bosch_vin')
+        if not bosch_vin:
+            continue
+
+        vehicle = Vehicle.query.filter_by(bosch_vin=bosch_vin).first()
+        is_new = False
+        if not vehicle:
+            vehicle = Vehicle(bosch_vin=bosch_vin)
+            db.session.add(vehicle)
+            is_new = True
+
+        _assign_vehicle_fields(vehicle, data, idx + 1)
+        db.session.flush()
+
+        if is_new and len(vehicle.movements) == 0:
+            _ensure_genesis_hop(vehicle, data)
+
+        vehicle.update_from_latest_hop()
+
+        if is_new:
+            created_count += 1
+        else:
+            updated_count += 1
+
+    return {
+        'created': created_count,
+        'updated': updated_count,
+        'total_processed': len(df)
+    }
+
+def _import_movements_sheet(df):
+    """Import and upsert records from normalized 'vehicle_movements' sheet."""
+    col_mapping = {}
+    for col in df.columns:
+        mapped = map_column_name(col)
+        if mapped:
+            col_mapping[col] = mapped
+
+    for _, row in df.iterrows():
+        data = {col_mapping[c]: str(row[c]).strip() for c in df.columns if c in col_mapping}
+
+        vehicle_id = None
+        if 'vehicle_id' in data and data['vehicle_id'].isdigit():
+            vehicle_id = int(data['vehicle_id'])
+        elif 'bosch_vin' in data and data['bosch_vin']:
+            v = Vehicle.query.filter_by(bosch_vin=data['bosch_vin']).first()
+            if v:
+                vehicle_id = v.id
+
+        if not vehicle_id:
+            continue
+
+        hop_seq = int(data.get('hop_sequence', 1)) if str(data.get('hop_sequence', '')).isdigit() else 1
+
+        existing_hop = VehicleMovement.query.filter_by(vehicle_id=vehicle_id, hop_sequence=hop_seq).first()
+        if not existing_hop:
+            existing_hop = VehicleMovement(vehicle_id=vehicle_id, hop_sequence=hop_seq)
+            db.session.add(existing_hop)
+
+        existing_hop.source_location = data.get('source_location') or 'BOSCH PLANT'
+        existing_hop.destination_location = data.get('destination_location') or 'BOSCH PLANT'
+        existing_hop.dispatch_date = data.get('dispatch_date')
+        existing_hop.arrival_date = data.get('arrival_date')
+        existing_hop.dc_number = data.get('dc_number')
+        existing_hop.movement_purpose = data.get('movement_purpose', 'Transit')
+        existing_hop.status = data.get('status', 'At Location')
+        existing_hop.remarks = data.get('remarks') or data.get('work_done')
+
+        v = db.session.get(Vehicle, vehicle_id)
+        if v:
+            v.update_from_latest_hop()
+
+def _assign_vehicle_fields(vehicle, data, fallback_sr_no=1):
+    """Assign fields from dictionary to Vehicle model using new normalized schema."""
+    sr_no_val = data.get('sr_no')
+    if sr_no_val and str(sr_no_val).isdigit():
+        vehicle.sr_no = int(sr_no_val)
+    elif not vehicle.sr_no:
+        vehicle.sr_no = fallback_sr_no
+
+    vehicle.oem_id = data.get('oem_id', vehicle.oem_id or '')
+    vehicle.oem = data.get('oem', vehicle.oem or 'Unknown')
+    vehicle.vehicle_name = data.get('vehicle_name', vehicle.vehicle_name or 'Unknown')
+    vehicle.type = data.get('type', vehicle.type or 'PP')
+    vehicle.owner = data.get('owner', vehicle.owner or '')
+    vehicle.chassis_no = data.get('chassis_no', vehicle.chassis_no or '')
+    vehicle.vehicle_material = data.get('vehicle_material', vehicle.vehicle_material or '')
+    vehicle.spare_parts_link = data.get('spare_parts_link', vehicle.spare_parts_link or '')
+    vehicle.pdi_status = data.get('pdi_status', vehicle.pdi_status or '')
+    vehicle.vehicle_issues = data.get('vehicle_issues', vehicle.vehicle_issues or '')
+    vehicle.work_order_received_date = data.get('work_order_received_date', vehicle.work_order_received_date or '')
+    vehicle.tpm_confirmation = data.get('tpm_confirmation', vehicle.tpm_confirmation or '')
+    vehicle.current_status = data.get('current_status', vehicle.current_status or 'Active')
+    vehicle.remark = data.get('remark', vehicle.remark or '')
+
+    if 'current_location' in data and data['current_location']:
+        vehicle.current_location = data['current_location']
+    elif not vehicle.current_location:
+        vehicle.current_location = 'BOSCH PLANT'
+
+def _auto_convert_legacy_hops(vehicle, data, is_new):
+    """
+    Auto-converts legacy 25-column format into discrete VehicleMovement records:
+    Hop 1: RECEIVING LOCATION + INCOMING DATE (Genesis Hop)
+    Hop 2: OUTGOING LOCATION + OUTGOING DATE (with BOSCH DC-1 / DC-2)
+    Hop 3: INCOMING DATE2 (Return to facility)
+    Hop 4: Date sent to customer (Customer dispatch)
+    """
+    if not is_new and len(vehicle.movements) > 0:
+        return  # Existing movements preserved
+
+    hop_seq = 1
+    start_loc = data.get('legacy_receiving_location') or vehicle.current_location or 'BOSCH PLANT'
+    start_date = data.get('legacy_incoming_date') or 'N/A'
+    dc1 = data.get('legacy_bosch_dc1', '')
+    dc2 = data.get('legacy_bosch_dc2', '')
+
+    # Hop 1: Genesis Hop
+    hop1 = VehicleMovement(
+        vehicle_id=vehicle.id,
+        hop_sequence=hop_seq,
+        source_location='OEM / Inbound Transit',
+        destination_location=start_loc,
+        arrival_date=start_date,
+        dc_number=dc1,
+        movement_purpose='Initial Receipt & Check-in',
+        status='Received',
+        remarks='Genesis hop synthesized from legacy master data'
+    )
+    db.session.add(hop1)
+    hop_seq += 1
+    vehicle.current_location = start_loc
+
+    # Hop 2: Outgoing Transfer (if outgoing location provided)
+    out_loc = data.get('legacy_outgoing_location')
+    out_date = data.get('legacy_outgoing_date')
+    if out_loc and out_loc.upper() not in ('NA', '', 'NONE'):
+        hop2 = VehicleMovement(
+            vehicle_id=vehicle.id,
+            hop_sequence=hop_seq,
+            source_location=start_loc,
+            destination_location=out_loc,
+            dispatch_date=out_date or '',
+            arrival_date=out_date or '',
+            dc_number=dc2 or dc1,
+            movement_purpose='Dispatched for Testing / OEM Return',
+            status='Dispatched',
+            remarks='Outgoing transfer synthesized from legacy master data'
+        )
+        db.session.add(hop2)
+        hop_seq += 1
+        vehicle.current_location = out_loc
+
+    # Hop 3: Return Cycle (if incoming_date2 provided)
+    in_date2 = data.get('legacy_incoming_date2')
+    if in_date2 and in_date2.upper() not in ('NA', '', 'NONE'):
+        hop3 = VehicleMovement(
+            vehicle_id=vehicle.id,
+            hop_sequence=hop_seq,
+            source_location=out_loc or 'External Location',
+            destination_location=start_loc,
+            arrival_date=in_date2,
+            dc_number=dc2,
+            movement_purpose='Re-entry for evaluation',
+            status='Received Back',
+            remarks='Second incoming cycle synthesized from legacy master data'
+        )
+        db.session.add(hop3)
+        hop_seq += 1
+        vehicle.current_location = start_loc
+
+    # Hop 4: Customer Return (if date_sent_to_customer provided)
+    customer_date = data.get('legacy_date_sent_to_customer')
+    if customer_date and customer_date.upper() not in ('NA', '', 'NONE'):
+        hop4 = VehicleMovement(
+            vehicle_id=vehicle.id,
+            hop_sequence=hop_seq,
+            source_location=vehicle.current_location,
+            destination_location=vehicle.oem or 'Customer / OEM',
+            dispatch_date=customer_date,
+            arrival_date=customer_date,
+            movement_purpose='Dispatched to Customer',
+            status='Delivered to Customer',
+            remarks='Customer dispatch synthesized from legacy master data'
+        )
+        db.session.add(hop4)
+        vehicle.current_location = vehicle.oem or 'Customer / OEM'
+
+def _ensure_genesis_hop(vehicle, data):
+    """Creates a basic Hop #1 for new vehicles without existing movements."""
+    start_loc = vehicle.current_location or 'BOSCH PLANT'
+    hop1 = VehicleMovement(
+        vehicle_id=vehicle.id,
+        hop_sequence=1,
+        source_location='OEM / Factory',
+        destination_location=start_loc,
+        arrival_date=datetime.now().strftime('%d-%b-%y'),
+        movement_purpose='Genesis Initial Receipt',
+        status='Received',
+        remarks='Initial check-in hop'
+    )
+    db.session.add(hop1)
+    vehicle.current_location = start_loc
 
 def export_to_excel(export_filepath):
     """
-    Exports all vehicle records and movement histories to a beautifully styled Excel workbook.
+    Exports both tables into separate sheets in an Excel workbook:
+    Sheet 1: 'vehicles' (All vehicle specifications in lowercase_with_underscore)
+    Sheet 2: 'vehicle_movements' (All hop entries in lowercase_with_underscore)
     """
     wb = openpyxl.Workbook()
-    ws_main = wb.active
-    ws_main.title = "Vehicle Master Data"
 
-    # Styling constants
-    header_fill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+    # Sheet 1: vehicles
+    ws_v = wb.active
+    ws_v.title = "vehicles"
+
+    # Styling definitions
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
     cell_font = Font(name="Calibri", size=10)
+    v_header_fill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+    m_header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    
     border_thin = Border(
         left=Side(style='thin', color='D9D9D9'),
         right=Side(style='thin', color='D9D9D9'),
@@ -273,10 +500,10 @@ def export_to_excel(export_filepath):
     center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
     left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
-    # Write Master Headers
-    for col_idx, col_name in enumerate(EXCEL_COLUMNS, 1):
-        cell = ws_main.cell(row=1, column=col_idx, value=col_name)
-        cell.fill = header_fill
+    # Write vehicles header
+    for col_idx, col_name in enumerate(VEHICLES_COLUMNS, 1):
+        cell = ws_v.cell(row=1, column=col_idx, value=col_name)
+        cell.fill = v_header_fill
         cell.font = header_font
         cell.alignment = center_align
 
@@ -286,96 +513,73 @@ def export_to_excel(export_filepath):
         row_data = [
             v.sr_no or (row_idx - 1),
             v.bosch_vin or '',
+            v.oem_id or '',
             v.oem or '',
             v.vehicle_name or '',
-            v.oem_id_no or '',
-            v.vehicle_type or '',
-            v.bosch_dc1 or '',
-            v.bosch_dc2 or '',
+            v.type or '',
             v.owner or '',
-            v.incoming_date or '',
             v.chassis_no or '',
-            v.material_with_vehicle or '',
+            v.vehicle_material or '',
             v.spare_parts_link or '',
-            v.outgoing_date or '',
-            v.outgoing_location or '',
-            v.incoming_date2 or '',
-            v.current_status or '',
-            v.receiving_location or '',
-            v.date_sent_to_customer or '',
             v.pdi_status or '',
-            v.vehicle_problem_issues or '',
+            v.vehicle_issues or '',
             v.work_order_received_date or '',
             v.tpm_confirmation or '',
+            v.current_status or 'Active',
+            v.current_location or 'BOSCH PLANT',
             v.remark or '',
-            v.movement_history_summary or ''
+            v.total_hops or len(v.movements),
+            v.updated_at.strftime('%Y-%m-%d %H:%M:%S') if v.updated_at else ''
         ]
         for col_idx, val in enumerate(row_data, 1):
-            c = ws_main.cell(row=row_idx, column=col_idx, value=val)
-            c.font = cell_font
-            c.border = border_thin
-            if col_idx in [1, 2, 5, 6, 10, 14, 16, 17, 19, 20]:
-                c.alignment = center_align
-            else:
-                c.alignment = left_align
+            cell = ws_v.cell(row=row_idx, column=col_idx, value=val)
+            cell.font = cell_font
+            cell.border = border_thin
+            cell.alignment = center_align if col_idx in (1, 2, 3, 4, 6, 8, 11, 14, 15, 18, 19) else left_align
 
-    # Auto-adjust column widths
-    for col in ws_main.columns:
-        max_len = 0
-        col_letter = get_column_letter(col[0].column)
-        for cell in col:
-            val_str = str(cell.value or '')
-            if '\n' in val_str:
-                val_str = max(val_str.split('\n'), key=len)
-            max_len = max(max_len, len(val_str))
-        ws_main.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 45)
+    # Sheet 2: vehicle_movements
+    ws_m = wb.create_sheet(title="vehicle_movements")
 
-    # Add second sheet for Detailed Movement Logs
-    ws_hops = wb.create_sheet(title="Movement Audit Log")
-    hop_headers = [
-        "Vehicle ID", "Bosch VIN", "OEM", "Vehicle Name", "Hop #",
-        "Source Location", "Destination Location", "Dispatch Date",
-        "Arrival Date", "Purpose", "Work Done", "DC / Gate Pass", "Status", "Remarks"
-    ]
-    for col_idx, col_name in enumerate(hop_headers, 1):
-        cell = ws_hops.cell(row=1, column=col_idx, value=col_name)
-        cell.fill = PatternFill(start_color="203764", end_color="203764", fill_type="solid")
+    for col_idx, col_name in enumerate(MOVEMENTS_COLUMNS, 1):
+        cell = ws_m.cell(row=1, column=col_idx, value=col_name)
+        cell.fill = m_header_fill
         cell.font = header_font
         cell.alignment = center_align
 
-    movements = VehicleMovement.query.join(Vehicle).order_by(Vehicle.id.asc(), VehicleMovement.hop_sequence.asc()).all()
+    movements = VehicleMovement.query.order_by(
+        VehicleMovement.vehicle_id.asc(),
+        VehicleMovement.hop_sequence.asc()
+    ).all()
+
     for row_idx, m in enumerate(movements, 2):
-        hop_row = [
+        row_data = [
+            m.id,
             m.vehicle_id,
             m.vehicle.bosch_vin if m.vehicle else '',
-            m.vehicle.oem if m.vehicle else '',
-            m.vehicle.vehicle_name if m.vehicle else '',
             m.hop_sequence,
-            m.source_location,
-            m.destination_location,
+            m.source_location or '',
+            m.destination_location or '',
             m.dispatch_date or '',
             m.arrival_date or '',
-            m.movement_purpose or '',
-            m.work_done or '',
             m.dc_number or '',
+            m.movement_purpose or '',
             m.status or '',
-            m.remarks or ''
+            m.remarks or m.work_done or '',
+            m.created_at.strftime('%Y-%m-%d %H:%M:%S') if m.created_at else ''
         ]
-        for col_idx, val in enumerate(hop_row, 1):
-            c = ws_hops.cell(row=row_idx, column=col_idx, value=val)
-            c.font = cell_font
-            c.border = border_thin
-            c.alignment = center_align if col_idx in [1, 2, 5, 8, 9, 13] else left_align
+        for col_idx, val in enumerate(row_data, 1):
+            cell = ws_m.cell(row=row_idx, column=col_idx, value=val)
+            cell.font = cell_font
+            cell.border = border_thin
+            cell.alignment = center_align if col_idx in (1, 2, 3, 4, 7, 8, 9, 11, 13) else left_align
 
-    for col in ws_hops.columns:
-        max_len = 0
-        col_letter = get_column_letter(col[0].column)
-        for cell in col:
-            val_str = str(cell.value or '')
-            max_len = max(max_len, len(val_str))
-        ws_hops.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 40)
+    # Auto-fit column widths
+    for sheet in (ws_v, ws_m):
+        for col in sheet.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            col_letter = get_column_letter(col[0].column)
+            sheet.column_dimensions[col_letter].width = max(max_len + 3, 12)
 
-    # Save to file
     os.makedirs(os.path.dirname(export_filepath), exist_ok=True)
     wb.save(export_filepath)
     return export_filepath

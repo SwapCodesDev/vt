@@ -1,231 +1,291 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ 'Add New Vehicle' if is_new else 'Edit ' ~ vehicle.bosch_vin }} | Data Manager{% endblock %}
+{% block title %}{{ 'Register New Vehicle' if is_new else 'Edit Vehicle ' ~ vehicle.bosch_vin }} | Data Manager{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <!-- Breadcrumbs -->
+<div class="container py-4" style="max-width: 980px;">
+    <!-- Breadcrumb Navigation -->
     <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-2 small">
+        <ol class="breadcrumb mb-3 small">
             <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="text-decoration-none">Home</a></li>
             <li class="breadcrumb-item"><a href="{{ url_for('data_manager.index') }}" class="text-decoration-none">Data Manager</a></li>
             <li class="breadcrumb-item active">{{ 'Add New Vehicle' if is_new else vehicle.bosch_vin }}</li>
         </ol>
     </nav>
 
-    <div class="card border-0 rounded-4 shadow-sm overflow-hidden">
-        <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
-            <div>
+    <!-- Page Title & Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <i data-lucide="plus-circle" class="text-primary" style="width: 26px; height: 26px;"></i>
                 <h4 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-pencil-square text-primary me-2"></i>
-                    {{ 'Add New Vehicle Record' if is_new else 'Modify Vehicle: ' ~ vehicle.bosch_vin }}
+                    {{ 'Add New Vehicle' if is_new else 'Modify Vehicle Details' }}
                 </h4>
-                <p class="text-muted small mb-0">Directly modify attributes in the SQLite database and synchronize with Excel master records.</p>
             </div>
-            {% if not is_new %}
-            <a href="{{ url_for('tracking.detail', vehicle_id=vehicle.id) }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
-                <i class="bi bi-diagram-3"></i>
-                <span>View 360 &amp; Hops</span>
-            </a>
-            {% endif %}
+            <p class="text-muted small mb-0 mt-1">
+                {{ 'Fill in the vehicle specifications below. Required fields are marked with an asterisk (*).' if is_new else 'Update specifications for vehicle ' ~ vehicle.bosch_vin ~ '.' }}
+            </p>
         </div>
+        {% if not is_new %}
+        <a href="{{ url_for('tracking.detail', identifier=vehicle.bosch_vin) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
+            <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
+            <span>View 360&deg; Lifecycle</span>
+        </a>
+        {% endif %}
+    </div>
 
-        <div class="card-body p-4">
-            <form method="POST">
-                <!-- Section 1: Identification & Ownership -->
-                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                    <i class="bi bi-person-badge text-primary fs-5"></i>
-                    <h5 class="fw-bold mb-0 text-dark">1. Vehicle Identification &amp; Ownership</h5>
-                </div>
-                <div class="row g-3 mb-4">
+    <!-- Simplified, Structured Form -->
+    <form method="POST">
+        <!-- CARD 1: Core Vehicle Identification -->
+        <div class="card border rounded-3 shadow-sm bg-white mb-4 overflow-hidden">
+            <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2">
+                <i data-lucide="truck" class="text-primary" style="width: 18px; height: 18px;"></i>
+                <h6 class="fw-bold mb-0 text-dark">1. Vehicle Identification</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <!-- Bosch VIN -->
                     <div class="col-md-4">
-                        <label class="form-label small fw-bold">Bosch Vehicle ID (VIN) *</label>
+                        <label class="form-label small fw-bold text-dark">
+                            Bosch VIN <span class="text-danger">*</span>
+                        </label>
                         <input type="text" name="bosch_vin" class="form-control font-monospace" 
                                value="{{ vehicle.bosch_vin if vehicle else '' }}" 
-                               {{ 'readonly' if not is_new else '' }} required placeholder="e.g. CVP_2023_001">
-                        <div class="form-text">Unique identifier across Bosch ecosystem.</div>
+                               {{ 'readonly' if not is_new else '' }} required 
+                               placeholder="e.g. CVP_2023_001" autofocus>
+                        <div class="form-text small">Unique Bosch fleet tracking code.</div>
                     </div>
+
+                    <!-- Vehicle Name / Model -->
                     <div class="col-md-4">
-                        <label class="form-label small fw-bold">OEM Manufacturer *</label>
+                        <label class="form-label small fw-bold text-dark">
+                            Vehicle Model Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="vehicle_name" class="form-control" 
+                               value="{{ vehicle.vehicle_name if vehicle else '' }}" required 
+                               placeholder="e.g. ALTROZ CNG, SAFARI, NEXON">
+                        <div class="form-text small">Make and model name.</div>
+                    </div>
+
+                    <!-- OEM Brand -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-dark">
+                            OEM Manufacturer <span class="text-danger">*</span>
+                        </label>
                         <input type="text" name="oem" class="form-control" 
                                value="{{ vehicle.oem if vehicle else '' }}" required 
-                               placeholder="e.g. TATA, MARUTI SUZUKI, MG MOTOR..." list="oemsList">
+                               placeholder="e.g. TATA, MARUTI SUZUKI, MG" list="oemsList">
                         <datalist id="oemsList">
                             {% for o in known_oems %}
                             <option value="{{ o }}">
                             {% endfor %}
                         </datalist>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">Vehicle Name / Model *</label>
-                        <input type="text" name="vehicle_name" class="form-control" 
-                               value="{{ vehicle.vehicle_name if vehicle else '' }}" required 
-                               placeholder="e.g. ALTROZ CNG, SAFARI, TIAGO EV">
+                        <div class="form-text small">Automaker / OEM brand.</div>
                     </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label small fw-bold">OEM Identification No</label>
-                        <input type="text" name="oem_id_no" class="form-control font-monospace" 
-                               value="{{ vehicle.oem_id_no if vehicle else '' }}" placeholder="e.g. EP07116">
+                    <!-- OEM ID -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-dark">OEM Identification ID</label>
+                        <input type="text" name="oem_id" class="form-control font-monospace" 
+                               value="{{ vehicle.oem_id if vehicle else '' }}" placeholder="e.g. EP07116 (Optional)">
+                        <div class="form-text small">OEM internal tracking reference.</div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small fw-bold">Type</label>
-                        <select name="vehicle_type" class="form-select">
-                            <option value="PP" {% if vehicle and vehicle.vehicle_type == 'PP' %}selected{% endif %}>PP</option>
-                            <option value="NON PP" {% if vehicle and vehicle.vehicle_type == 'NON PP' %}selected{% endif %}>NON PP</option>
+
+                    <!-- Vehicle Type -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-dark">Vehicle Build Type</label>
+                        <select name="type" class="form-select">
+                            <option value="PP" {% if vehicle and vehicle.type == 'PP' %}selected{% endif %}>PP (Pre-Production)</option>
+                            <option value="NON PP" {% if vehicle and vehicle.type == 'NON PP' %}selected{% endif %}>NON PP (Production / Standard)</option>
                         </select>
+                        <div class="form-text small">Production category.</div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small fw-bold">Chassis Number</label>
+
+                    <!-- Chassis No -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-dark">Chassis Number</label>
                         <input type="text" name="chassis_no" class="form-control font-monospace" 
                                value="{{ vehicle.chassis_no if vehicle else '' }}" placeholder="e.g. PP20251032RP07562">
+                        <div class="form-text small">Manufacturer chassis or frame number.</div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small fw-bold">SR.NO</label>
-                        <input type="number" name="sr_no" class="form-control font-monospace" 
-                               value="{{ vehicle.sr_no if vehicle else '' }}" placeholder="e.g. 1">
-                    </div>
+                </div>
+            </div>
+        </div>
 
-                    <div class="col-md-12">
-                        <label class="form-label small fw-bold">Vehicle Owner / Project Lead</label>
+        <!-- CARD 2: Ownership & Operational Status -->
+        <div class="card border rounded-3 shadow-sm bg-white mb-4 overflow-hidden">
+            <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2">
+                <i data-lucide="user-check" class="text-primary" style="width: 18px; height: 18px;"></i>
+                <h6 class="fw-bold mb-0 text-dark">2. Ownership &amp; Operating Status</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <!-- Owner / Responsible Engineer -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-dark">Responsible Owner / Engineer</label>
                         <input type="text" name="owner" class="form-control" 
-                               value="{{ vehicle.owner if vehicle else '' }}" placeholder="e.g. Pankaj Ambatkar (CC/EAS1-IN)">
+                               value="{{ vehicle.owner if vehicle else '' }}" 
+                               placeholder="e.g. Pankaj Ambatkar (CC/EAS1-IN)">
+                        <div class="form-text small">Department contact person responsible for vehicle.</div>
                     </div>
-                </div>
 
-                <!-- Section 2: Logistics & Start Points (Company Requirement) -->
-                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                    <i class="bi bi-geo-alt text-success fs-5"></i>
-                    <h5 class="fw-bold mb-0 text-dark">2. Logistics, Locations &amp; Start Points</h5>
+                    <!-- Current Status / Location -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-dark">Current Operational Location (Status)</label>
+                        <input type="text" name="current_status" class="form-control" 
+                               value="{{ vehicle.current_status if vehicle else 'BOSCH PLANT' }}" 
+                               placeholder="e.g. BOSCH PLANT, TATA MOTORS, In Workshop" list="locsList">
+                        <div class="form-text small">Facility or current operational status where vehicle resides.</div>
+                    </div>
+
+                    <!-- PDI Status -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-dark">PDI Inspection Status</label>
+                        <select name="pdi_status" class="form-select">
+                            <option value="Completed" {% if vehicle and vehicle.pdi_status == 'Completed' %}selected{% endif %}>Completed (Inspected &amp; Passed)</option>
+                            <option value="Pending Verification" {% if (vehicle and vehicle.pdi_status == 'Pending Verification') or not vehicle %}selected{% endif %}>Pending Verification</option>
+                            <option value="In Progress" {% if vehicle and vehicle.pdi_status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                        </select>
+                        <div class="form-text small">Pre-delivery inspection stage.</div>
+                    </div>
+
+                    <!-- TPM Confirmation -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-dark">TPM Confirmation</label>
+                        <input type="text" name="tpm_confirmation" class="form-control" 
+                               value="{{ vehicle.tpm_confirmation if vehicle else '' }}" 
+                               placeholder="e.g. Confirmed, Pending, or N/A">
+                        <div class="form-text small">Total Productive Maintenance sign-off status.</div>
+                    </div>
                 </div>
-                <div class="row g-3 mb-4">
+            </div>
+        </div>
+
+        <!-- CARD 3: Equipment, Quality & Notes -->
+        <div class="card border rounded-3 shadow-sm bg-white mb-4 overflow-hidden">
+            <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2">
+                <i data-lucide="package" class="text-primary" style="width: 18px; height: 18px;"></i>
+                <h6 class="fw-bold mb-0 text-dark">3. Equipment, Quality &amp; Documentation</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <!-- Materials Included -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-dark">Materials &amp; Accessories Received</label>
+                        <textarea name="vehicle_material" class="form-control" rows="2" 
+                                  placeholder="e.g. Jack with handle, wheel spanner, safety triangle, charging cable, tools...">{{ vehicle.vehicle_material if vehicle else '' }}</textarea>
+                        <div class="form-text small">Inventory of tools and equipment accompanying the vehicle.</div>
+                    </div>
+
+                    <!-- Spare Parts Documentation Link -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-dark">Spare Parts Link / Documentation</label>
+                        <textarea name="spare_parts_link" class="form-control" rows="2" 
+                                  placeholder="Documentation URL or note (e.g. NO SPARE PARTS AVAILABLE)">{{ vehicle.spare_parts_link if vehicle else 'NO SPARE PARTS AVAILABLE' }}</textarea>
+                        <div class="form-text small">Direct link to parts catalog or parts availability status.</div>
+                    </div>
+
+                    <!-- Work Order Date -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-dark">Work Order Received Date</label>
+                        <input type="text" name="work_order_received_date" class="form-control font-monospace" 
+                               value="{{ vehicle.work_order_received_date if vehicle else '' }}" 
+                               placeholder="DD-Mon-YY (e.g. 15-Jan-24)">
+                        <div class="form-text small">Date authorization work order was issued.</div>
+                    </div>
+
+                    <!-- Known Issues (Highlighted soft danger) -->
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold text-danger d-flex align-items-center gap-1">
+                            <i data-lucide="alert-triangle" style="width: 14px; height: 14px;"></i>
+                            <span>Vehicle Issues / Problem Observations (Optional)</span>
+                        </label>
+                        <input type="text" name="vehicle_issues" class="form-control border-danger-subtle" 
+                               value="{{ vehicle.vehicle_issues if vehicle else '' }}" 
+                               placeholder="Leave blank if none, or specify defect (e.g. Brake sensor warning, AC blower)">
+                        <div class="form-text small text-danger">Open defects or calibration concerns requiring technical attention.</div>
+                    </div>
+
+                    <!-- General Remark -->
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-dark">General Remarks</label>
+                        <input type="text" name="remark" class="form-control" 
+                               value="{{ vehicle.remark if vehicle else '' }}" 
+                               placeholder="Any additional notes or operational remarks...">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if is_new %}
+        <!-- CARD 4: Initial Facility Check-In (Hop #1 Genesis Start Point) -->
+        <div class="card border border-success-subtle rounded-3 shadow-sm bg-white mb-4 overflow-hidden">
+            <div class="card-header bg-success bg-opacity-10 border-bottom border-success border-opacity-25 py-3 px-4 d-flex align-items-center gap-2">
+                <i data-lucide="flag" class="text-success" style="width: 18px; height: 18px;"></i>
+                <div>
+                    <h6 class="fw-bold mb-0 text-success">4. Initial Facility Check-In (Hop #1 Start Point)</h6>
+                    <span class="text-muted small" style="font-size: 0.75rem;">Establishes the vehicle's starting facility and initial entry date into the movement tracking ledger.</span>
+                </div>
+            </div>
+            <div class="card-body p-4 bg-light bg-opacity-50">
+                <div class="row g-3">
+                    <!-- Start Point Location -->
                     <div class="col-md-4">
                         <label class="form-label small fw-bold text-success">
-                            <i class="bi bi-flag-fill me-1"></i>Receiving Location (Start Point) *
+                            Receiving Facility (Start Point) <span class="text-danger">*</span>
                         </label>
-                        <input type="text" name="receiving_location" class="form-control border-success" 
-                               value="{{ vehicle.receiving_location if vehicle else 'BOSCH PLANT' }}" required 
-                               list="locsList">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold text-success">
-                            <i class="bi bi-calendar-event me-1"></i>Incoming Date (Start Point)
-                        </label>
-                        <input type="text" name="incoming_date" class="form-control border-success font-monospace" 
-                               value="{{ vehicle.incoming_date if vehicle else '' }}" placeholder="DD-Mon-YY">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">Current Active Location</label>
-                        <input type="text" name="current_location" class="form-control" 
-                               value="{{ vehicle.current_location if vehicle else '' }}" list="locsList">
+                        <input type="text" name="start_location" class="form-control border-success" 
+                               value="BOSCH PLANT" required list="locsList" placeholder="e.g. BOSCH PLANT">
                         <datalist id="locsList">
                             {% for l in known_locations %}
                             <option value="{{ l }}">
                             {% endfor %}
                         </datalist>
+                        <div class="form-text small">Initial gate-in arrival facility.</div>
                     </div>
 
+                    <!-- Start Date -->
                     <div class="col-md-4">
-                        <label class="form-label small fw-bold">Current Status</label>
-                        <input type="text" name="current_status" class="form-control" 
-                               value="{{ vehicle.current_status if vehicle else 'Received' }}" 
-                               placeholder="e.g. Received, Dispatched, At NATRAX, TATA MOTORS">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">Outgoing Location</label>
-                        <input type="text" name="outgoing_location" class="form-control" 
-                               value="{{ vehicle.outgoing_location if vehicle else '' }}" list="locsList">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">Outgoing Date</label>
-                        <input type="text" name="outgoing_date" class="form-control font-monospace" 
-                               value="{{ vehicle.outgoing_date if vehicle else '' }}" placeholder="DD-Mon-YY">
+                        <label class="form-label small fw-bold text-success">
+                            Arrival Receipt Date <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="start_date" class="form-control border-success font-monospace" 
+                               value="{{ today_date }}" placeholder="DD-Mon-YY (e.g. 16-Nov-26)" required>
+                        <div class="form-text small">Date vehicle was unloaded and received.</div>
                     </div>
 
+                    <!-- Initial DC Number -->
                     <div class="col-md-4">
-                        <label class="form-label small fw-bold">Incoming Date 2 (Return Date)</label>
-                        <input type="text" name="incoming_date2" class="form-control font-monospace" 
-                               value="{{ vehicle.incoming_date2 if vehicle else '' }}" placeholder="DD-Mon-YY">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">Date Sent to Customer</label>
-                        <input type="text" name="date_sent_to_customer" class="form-control font-monospace" 
-                               value="{{ vehicle.date_sent_to_customer if vehicle else '' }}" placeholder="DD-Mon-YY">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small fw-bold">Bosch DC-1</label>
-                        <input type="text" name="bosch_dc1" class="form-control font-monospace" 
-                               value="{{ vehicle.bosch_dc1 if vehicle else '' }}">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small fw-bold">Bosch DC-2</label>
-                        <input type="text" name="bosch_dc2" class="form-control font-monospace" 
-                               value="{{ vehicle.bosch_dc2 if vehicle else '' }}">
-                    </div>
-                </div>
-
-                <!-- Section 3: Materials & Equipment -->
-                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                    <i class="bi bi-tools text-secondary fs-5"></i>
-                    <h5 class="fw-bold mb-0 text-dark">3. Materials &amp; Spare Parts</h5>
-                </div>
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <label class="form-label small fw-bold">Material Come With Vehicle</label>
-                        <textarea name="material_with_vehicle" class="form-control" rows="2" 
-                                  placeholder="e.g. Jack with handle, wheel spanner, safety triangle...">{{ vehicle.material_with_vehicle if vehicle else '' }}</textarea>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-bold">Spare Parts Link</label>
-                        <textarea name="spare_parts_link" class="form-control" rows="2" 
-                                  placeholder="Spare parts link or status...">{{ vehicle.spare_parts_link if vehicle else 'NO SPARE PARTS AVAILABLE' }}</textarea>
-                    </div>
-                </div>
-
-                <!-- Section 4: Quality, TPM & Remarks -->
-                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                    <i class="bi bi-shield-check text-info fs-5"></i>
-                    <h5 class="fw-bold mb-0 text-dark">4. Quality, Issues &amp; Operational Notes</h5>
-                </div>
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">PDI Status</label>
-                        <input type="text" name="pdi_status" class="form-control" 
-                               value="{{ vehicle.pdi_status if vehicle else '' }}" placeholder="e.g. Completed, Pending">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">Work Order Received Date</label>
-                        <input type="text" name="work_order_received_date" class="form-control font-monospace" 
-                               value="{{ vehicle.work_order_received_date if vehicle else '' }}" placeholder="DD-Mon-YY">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">TPM Confirmation</label>
-                        <input type="text" name="tpm_confirmation" class="form-control" 
-                               value="{{ vehicle.tpm_confirmation if vehicle else '' }}" placeholder="e.g. Confirmed, Pending">
+                        <label class="form-label small fw-bold text-dark">Delivery Challan / Gate Pass No.</label>
+                        <input type="text" name="initial_dc_number" class="form-control font-monospace" 
+                               placeholder="e.g. DC-IN-001 (Optional)">
+                        <div class="form-text small">Gate-in challan or inward DC number.</div>
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label small fw-bold text-danger">Vehicle Problem / Issues</label>
-                        <textarea name="vehicle_problem_issues" class="form-control border-danger-subtle" rows="2" 
-                                  placeholder="Describe any pending defects, calibration errors, or issues...">{{ vehicle.vehicle_problem_issues if vehicle else '' }}</textarea>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-bold">General Remarks</label>
-                        <textarea name="remark" class="form-control" rows="2" 
-                                  placeholder="Additional context or notes...">{{ vehicle.remark if vehicle else '' }}</textarea>
+                    <!-- Initial Hop Remarks -->
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-dark">Initial Check-in Remarks</label>
+                        <input type="text" name="initial_remarks" class="form-control" 
+                               placeholder="e.g. Initial gate-in and inspection at Bosch Plant with all accessories">
                     </div>
                 </div>
-
-                <!-- Submit / Actions -->
-                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
-                    <a href="{{ url_for('data_manager.index') }}" class="btn btn-outline-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm d-flex align-items-center gap-2">
-                        <i class="bi bi-check-circle-fill"></i>
-                        <span>Save to SQLite Database</span>
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+        {% endif %}
+
+        <!-- Form Submission Actions -->
+        <div class="card border rounded-3 shadow-sm bg-white p-3 mb-5">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{{ url_for('data_manager.index') }}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-1">
+                    <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                    <span>Cancel</span>
+                </a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                    <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
+                    <span>{{ 'Register Vehicle' if is_new else 'Save Changes' }}</span>
+                </button>
+            </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

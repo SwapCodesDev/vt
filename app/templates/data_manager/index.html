@@ -8,151 +8,260 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-2">
         <div>
             <h4 class="fw-bold mb-0 text-dark">Data Management Hub</h4>
-            <p class="text-muted small mb-0">View, modify, and export the master vehicle records stored in SQLite.</p>
+            <p class="text-muted small mb-0">Master Vehicles Data Grid &bull; SQLite Normalized Tables &amp; Bidirectional Excel Sync</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ url_for('data_manager.import_data') }}" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-upload me-1"></i> Import Excel / CSV
+            <a href="{{ url_for('data_manager.import_data') }}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                <i data-lucide="upload" style="width: 14px; height: 14px;"></i>
+                <span>Import Excel / CSV</span>
             </a>
-            <a href="{{ url_for('data_manager.export_data') }}" class="btn btn-sm btn-success">
-                <i class="bi bi-file-earmark-excel me-1"></i> Export Master (.xlsx)
+            <a href="{{ url_for('data_manager.export_data') }}" class="btn btn-sm btn-success d-inline-flex align-items-center gap-1">
+                <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>
+                <span>Export 2-Sheet Excel (.xlsx)</span>
             </a>
-            <a href="{{ url_for('data_manager.add_vehicle') }}" class="btn btn-sm btn-primary">
-                <i class="bi bi-plus me-1"></i> Add Vehicle
+            <a href="{{ url_for('data_manager.add_vehicle') }}" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                <span>Add Vehicle</span>
             </a>
         </div>
     </div>
 
-    <!-- Master Data Table Card -->
-    <div class="card border rounded-3 bg-white shadow-sm overflow-hidden">
-        <div class="card-header bg-white border-bottom py-2 px-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-            <div class="d-flex align-items-center gap-2">
-                <span class="small fw-semibold text-dark">Master Vehicles Data Grid</span>
-                <span class="badge bg-light text-muted border font-monospace">{{ total_count }} records</span>
-            </div>
+    <!-- Navigation Tabs to Switch between vehicles and vehicle_movements -->
+    <ul class="nav nav-tabs mb-3" id="dataManagerTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab != 'movements' %}active{% endif %} fw-semibold d-inline-flex align-items-center gap-1" 
+                    id="vehicles-tab" data-bs-toggle="tab" data-bs-target="#vehicles-pane" type="button" role="tab">
+                <i data-lucide="truck" style="width: 15px; height: 15px;"></i>
+                <span>vehicles ({{ total_vehicles }})</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'movements' %}active{% endif %} fw-semibold d-inline-flex align-items-center gap-1" 
+                    id="movements-tab" data-bs-toggle="tab" data-bs-target="#movements-pane" type="button" role="tab">
+                <i data-lucide="git-commit" style="width: 15px; height: 15px;"></i>
+                <span>vehicle_movements ({{ total_movements }})</span>
+            </button>
+        </li>
+    </ul>
 
-            <div class="col-12 col-md-3">
-                <input type="text" id="tableFilterInput" class="form-control form-control-sm" placeholder="Filter rows...">
+    <!-- Tab Contents -->
+    <div class="tab-content" id="dataManagerTabContent">
+        <!-- PANE 1: vehicles TABLE (Default View) -->
+        <div class="tab-pane fade {% if active_tab != 'movements' %}show active{% endif %}" id="vehicles-pane" role="tabpanel">
+            <div class="card border rounded-3 bg-white shadow-sm overflow-hidden">
+                <div class="card-header bg-white border-bottom py-2 px-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small fw-semibold text-dark">Table: <code class="text-primary fw-bold">vehicles</code></span>
+                        <span class="badge bg-light text-muted border font-monospace">{{ total_vehicles }} rows</span>
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <input type="text" id="vehiclesFilterInput" class="form-control form-control-sm" placeholder="Filter vehicles...">
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="max-height: 720px;">
+                    <table class="table clean-table mb-0 text-nowrap small" id="vehiclesTable">
+                        <thead class="sticky-top bg-light">
+                            <tr>
+                                <th class="ps-3">actions</th>
+                                <th>sr_no</th>
+                                <th>bosch_vin</th>
+                                <th>oem_id</th>
+                                <th>oem</th>
+                                <th>vehicle_name</th>
+                                <th>type</th>
+                                <th>owner</th>
+                                <th>chassis_no</th>
+                                <th>vehicle_material</th>
+                                <th>spare_parts_link</th>
+                                <th>pdi_status</th>
+                                <th>vehicle_issues</th>
+                                <th>work_order_received_date</th>
+                                <th>tpm_confirmation</th>
+                                <th>current_status</th>
+                                <th>current_location</th>
+                                <th>remark</th>
+                                <th>total_hops</th>
+                                <th class="pe-3">updated_at</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for v in vehicles %}
+                            <tr>
+                                <td class="ps-3">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('data_manager.edit_vehicle', vehicle_id=v.id) }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center" title="Edit in SQL">
+                                            <i data-lucide="pencil" style="width: 13px; height: 13px;"></i>
+                                        </a>
+                                        <a href="{{ url_for('tracking.detail', identifier=v.bosch_vin) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center" title="View Tracking &amp; Hops">
+                                            <i data-lucide="eye" style="width: 13px; height: 13px;"></i>
+                                        </a>
+                                        <form action="{{ url_for('data_manager.delete_vehicle', vehicle_id=v.id) }}" method="POST" class="d-inline"
+                                              onsubmit="return confirm('Delete vehicle {{ v.bosch_vin }} permanently?');">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center justify-content-center" title="Delete">
+                                                <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                                <td class="font-monospace text-muted">{{ v.sr_no or loop.index }}</td>
+                                <td class="fw-bold font-monospace">
+                                    <a href="{{ url_for('tracking.detail', identifier=v.bosch_vin) }}" class="text-primary text-decoration-none">
+                                        {{ v.bosch_vin }}
+                                    </a>
+                                </td>
+                                <td class="font-monospace text-muted">{{ v.oem_id or '-' }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ v.oem }}</span></td>
+                                <td class="fw-semibold">
+                                    <a href="{{ url_for('tracking.detail', identifier=v.bosch_vin) }}" class="text-dark text-decoration-none">
+                                        {{ v.vehicle_name }}
+                                    </a>
+                                </td>
+                                <td>{{ v.type or 'PP' }}</td>
+                                <td>{{ v.owner or '-' }}</td>
+                                <td class="font-monospace text-muted">{{ v.chassis_no or '-' }}</td>
+                                <td class="text-truncate" style="max-width: 180px;" title="{{ v.vehicle_material }}">
+                                    {{ v.vehicle_material or '-' }}
+                                </td>
+                                <td class="text-truncate" style="max-width: 140px;">
+                                    {% if v.spare_parts_link and 'http' in v.spare_parts_link %}
+                                    <a href="{{ v.spare_parts_link }}" target="_blank" class="text-decoration-none">Link</a>
+                                    {% else %}
+                                    {{ v.spare_parts_link or '-' }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ v.pdi_status or '-' }}</td>
+                                <td>
+                                    {% if v.vehicle_issues and v.vehicle_issues != 'NA' and v.vehicle_issues != 'None' %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">{{ v.vehicle_issues }}</span>
+                                    {% else %}
+                                    <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
+                                <td class="font-monospace text-muted">{{ v.work_order_received_date or '-' }}</td>
+                                <td>
+                                    {% if v.tpm_confirmation and 'CONFIRMED' in v.tpm_confirmation.upper() %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">{{ v.tpm_confirmation }}</span>
+                                    {% else %}
+                                    {{ v.tpm_confirmation or '-' }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ v.current_status }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary font-monospace">{{ v.current_location }}</span>
+                                </td>
+                                <td class="text-muted text-truncate" style="max-width: 150px;">{{ v.remark or '-' }}</td>
+                                <td class="text-center font-monospace fw-bold">{{ v.total_hops }}</td>
+                                <td class="pe-3 font-monospace text-muted small">
+                                    {{ v.updated_at.strftime('%Y-%m-%d %H:%M') if v.updated_at else '-' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <div class="table-responsive" style="max-height: 720px;">
-            <table class="table clean-table mb-0 text-nowrap small" id="masterDataTable">
-                <thead class="sticky-top bg-light">
-                    <tr>
-                        <th class="ps-3">Actions</th>
-                        <th>SR.NO</th>
-                        <th>BOSCH VIN</th>
-                        <th>OEM</th>
-                        <th>VEHICLE NAME</th>
-                        <th>OEM ID NO</th>
-                        <th>Type</th>
-                        <th>Owner</th>
-                        <th>INCOMING DATE</th>
-                        <th>RECEIVING LOCATION</th>
-                        <th>CHASSIS NO</th>
-                        <th>CURRENT LOCATION</th>
-                        <th>CURRENT STATUS</th>
-                        <th>OUTGOING DATE</th>
-                        <th>OUTGOING LOCATION</th>
-                        <th>INCOMING DATE2</th>
-                        <th>DATE SENT TO CUSTOMER</th>
-                        <th>PDI STATUS</th>
-                        <th>TPM CONFIRMATION</th>
-                        <th>PROBLEMS / ISSUES</th>
-                        <th>MATERIAL WITH VEHICLE</th>
-                        <th>SPARE PARTS LINK</th>
-                        <th>REMARK</th>
-                        <th>BOSCH DC-1</th>
-                        <th>BOSCH DC-2</th>
-                        <th class="pe-3">Movement History</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for v in vehicles %}
-                    <tr>
-                        <td class="ps-3">
-                            <div class="btn-group btn-group-sm">
-                                <a href="{{ url_for('data_manager.edit_vehicle', vehicle_id=v.id) }}" class="btn btn-outline-secondary btn-sm" title="Edit in SQL">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <a href="{{ url_for('tracking.detail', vehicle_id=v.id) }}" class="btn btn-outline-secondary btn-sm" title="View 360 & Hops">
-                                    <i class="bi bi-diagram-3"></i>
-                                </a>
-                                <form action="{{ url_for('data_manager.delete_vehicle', vehicle_id=v.id) }}" method="POST" class="d-inline"
-                                      onsubmit="return confirm('Delete vehicle {{ v.bosch_vin }} permanently?');">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                        <td class="font-monospace text-muted">{{ v.sr_no or loop.index }}</td>
-                        <td class="fw-bold font-monospace">
-                            <a href="{{ url_for('tracking.detail', vehicle_id=v.id) }}" class="text-decoration-none">
-                                {{ v.bosch_vin }}
-                            </a>
-                        </td>
-                        <td>{{ v.oem }}</td>
-                        <td class="fw-semibold">{{ v.vehicle_name }}</td>
-                        <td class="font-monospace text-muted">{{ v.oem_id_no or '' }}</td>
-                        <td>{{ v.vehicle_type or 'PP' }}</td>
-                        <td>{{ v.owner or '' }}</td>
-                        <td class="font-monospace">{{ v.incoming_date or '' }}</td>
-                        <td class="fw-semibold">{{ v.receiving_location or '' }}</td>
-                        <td class="font-monospace">{{ v.chassis_no or '' }}</td>
-                        <td>
-                            <span class="badge-subtle badge-subtle-primary">{{ v.current_location }}</span>
-                        </td>
-                        <td>
-                            <span class="badge-subtle badge-subtle-secondary">{{ v.current_status }}</span>
-                        </td>
-                        <td class="font-monospace">{{ v.outgoing_date or '' }}</td>
-                        <td>{{ v.outgoing_location or '' }}</td>
-                        <td class="font-monospace">{{ v.incoming_date2 or '' }}</td>
-                        <td class="font-monospace">{{ v.date_sent_to_customer or '' }}</td>
-                        <td>{{ v.pdi_status or '' }}</td>
-                        <td>{{ v.tpm_confirmation or '' }}</td>
-                        <td class="{{ 'text-danger fw-semibold' if v.vehicle_problem_issues else 'text-muted' }}">
-                            {{ v.vehicle_problem_issues or '-' }}
-                        </td>
-                        <td class="text-truncate" style="max-width: 180px;" title="{{ v.material_with_vehicle }}">
-                            {{ v.material_with_vehicle or '-' }}
-                        </td>
-                        <td>{{ v.spare_parts_link or '-' }}</td>
-                        <td class="text-truncate" style="max-width: 180px;" title="{{ v.remark }}">
-                            {{ v.remark or '-' }}
-                        </td>
-                        <td class="font-monospace">{{ v.bosch_dc1 or '-' }}</td>
-                        <td class="font-monospace">{{ v.bosch_dc2 or '-' }}</td>
-                        <td class="pe-3 text-truncate font-monospace" style="max-width: 220px;" title="{{ v.movement_history_summary }}">
-                            {{ v.movement_history_summary or '-' }}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="26" class="text-center py-4 text-muted">
-                            <div>No vehicle records found.</div>
-                            <a href="{{ url_for('data_manager.import_data') }}" class="btn btn-sm btn-primary mt-2">Import Data</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- PANE 2: vehicle_movements TABLE (Option to Switch) -->
+        <div class="tab-pane fade {% if active_tab == 'movements' %}show active{% endif %}" id="movements-pane" role="tabpanel">
+            <div class="card border rounded-3 bg-white shadow-sm overflow-hidden">
+                <div class="card-header bg-white border-bottom py-2 px-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small fw-semibold text-dark">Table: <code class="text-success fw-bold">vehicle_movements</code></span>
+                        <span class="badge bg-light text-muted border font-monospace">{{ total_movements }} recorded hops</span>
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <input type="text" id="movementsFilterInput" class="form-control form-control-sm" placeholder="Filter hops...">
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="max-height: 720px;">
+                    <table class="table clean-table mb-0 text-nowrap small" id="movementsTable">
+                        <thead class="sticky-top bg-light">
+                            <tr>
+                                <th class="ps-3">id</th>
+                                <th>vehicle_id</th>
+                                <th>bosch_vin</th>
+                                <th>hop_sequence</th>
+                                <th>source_location</th>
+                                <th>destination_location</th>
+                                <th>dispatch_date</th>
+                                <th>arrival_date</th>
+                                <th>dc_number</th>
+                                <th>movement_purpose</th>
+                                <th>status</th>
+                                <th>remarks</th>
+                                <th class="pe-3">created_at</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in movements %}
+                            <tr>
+                                <td class="ps-3 font-monospace text-muted">{{ m.id }}</td>
+                                <td class="font-monospace text-muted">{{ m.vehicle_id }}</td>
+                                <td class="fw-bold font-monospace">
+                                    {% if m.vehicle %}
+                                    <a href="{{ url_for('tracking.detail', identifier=m.vehicle.bosch_vin) }}" class="text-primary text-decoration-none">
+                                        {{ m.vehicle.bosch_vin }}
+                                    </a>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td class="text-center font-monospace">
+                                    <span class="badge bg-light text-dark border">Hop #{{ m.hop_sequence }}</span>
+                                </td>
+                                <td>{{ m.source_location }}</td>
+                                <td class="fw-semibold text-primary">{{ m.destination_location }}</td>
+                                <td class="font-monospace text-muted">{{ m.dispatch_date or '-' }}</td>
+                                <td class="font-monospace text-muted">{{ m.arrival_date or '-' }}</td>
+                                <td class="font-monospace text-muted">{{ m.dc_number or '-' }}</td>
+                                <td>{{ m.movement_purpose or '-' }}</td>
+                                <td>
+                                    <span class="badge bg-secondary font-monospace">{{ m.status }}</span>
+                                </td>
+                                <td class="text-muted text-truncate" style="max-width: 200px;">{{ m.remarks or m.work_done or '-' }}</td>
+                                <td class="pe-3 font-monospace text-muted small">
+                                    {{ m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else '-' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-    document.getElementById('tableFilterInput')?.addEventListener('keyup', function() {
-        const query = this.value.toLowerCase();
-        const rows = document.querySelectorAll('#masterDataTable tbody tr');
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(query) ? '' : 'none';
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter for vehicles table
+    const vFilter = document.getElementById('vehiclesFilterInput');
+    if (vFilter) {
+        vFilter.addEventListener('input', function() {
+            const q = this.value.toLowerCase();
+            document.querySelectorAll('#vehiclesTable tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
         });
-    });
+    }
+
+    // Filter for movements table
+    const mFilter = document.getElementById('movementsFilterInput');
+    if (mFilter) {
+        mFilter.addEventListener('input', function() {
+            const q = this.value.toLowerCase();
+            document.querySelectorAll('#movementsTable tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        });
+    }
+});
 </script>
 {% endblock %}

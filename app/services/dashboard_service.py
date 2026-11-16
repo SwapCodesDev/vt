@@ -30,10 +30,10 @@ def get_dashboard_telemetry():
     
     # Vehicles with Problems or Issues
     problem_vehicles = Vehicle.query.filter(
-        Vehicle.vehicle_problem_issues != None,
-        Vehicle.vehicle_problem_issues != '',
-        Vehicle.vehicle_problem_issues != 'NA',
-        Vehicle.vehicle_problem_issues != 'None'
+        Vehicle.vehicle_issues != None,
+        Vehicle.vehicle_issues != '',
+        Vehicle.vehicle_issues != 'NA',
+        Vehicle.vehicle_issues != 'None'
     ).all()
     
     # Recent Movement Hops (latest 20 across fleet)
@@ -44,6 +44,20 @@ def get_dashboard_telemetry():
     # Vehicles summary for the live display table & roadmap
     vehicles = Vehicle.query.order_by(Vehicle.id.asc()).all()
     vehicle_rows = [v.to_dict(include_movements=True) for v in vehicles]
+
+    # Running Updates Ticker Items for News Marquee
+    ticker_items = []
+    for m in recent_hops[:15]:
+        vin = m.vehicle.bosch_vin if m.vehicle else 'Vehicle'
+        oem = m.vehicle.oem if m.vehicle else ''
+        name = m.vehicle.vehicle_name if m.vehicle else ''
+        purpose = m.movement_purpose or 'Fleet Transit'
+        date_str = f" on {m.arrival_date or m.dispatch_date}" if (m.arrival_date or m.dispatch_date) else ""
+        ticker_items.append(f"{vin} ({oem} {name}): {m.source_location} &rarr; {m.destination_location} (Hop #{m.hop_sequence}{date_str} &bull; {purpose})")
+    
+    ticker_items.append(f"FLEET STATUS: {total_vehicles} Active Vehicles deployed across {len(sorted_locations)} Facilities")
+    if problem_vehicles:
+        ticker_items.append(f"QUALITY ALERTS: {len(problem_vehicles)} vehicle(s) require technical attention / TPM confirmation")
     
     return {
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -53,6 +67,7 @@ def get_dashboard_telemetry():
         'oem_distribution': oem_distribution,
         'status_distribution': status_distribution,
         'problem_count': len(problem_vehicles),
+        'ticker_items': ticker_items,
         'problem_vehicles': [
             {
                 'id': v.id,

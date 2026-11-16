@@ -1,0 +1,452 @@
+{% extends 'base.html' %}
+
+{% block title %}Settings | Bosch Vehicle Tracking{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Theme Selector Radio Cards */
+.theme-option-card {
+    position: relative;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-card);
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.theme-option-card:hover {
+    border-color: #60a5fa;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.theme-radio-input {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+    accent-color: #2563eb;
+}
+
+.theme-option-card.selected {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Mini Mockup Previews */
+.theme-preview-box {
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 12px;
+    height: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    user-select: none;
+    overflow: hidden;
+}
+
+/* Light Software Preview */
+.preview-software-light {
+    background: #f8fafc;
+    color: #0f172a;
+}
+.preview-software-light .preview-nav {
+    background: #0f172a;
+    height: 14px;
+    border-radius: 3px;
+    margin-bottom: 6px;
+}
+.preview-software-light .preview-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 6px;
+    flex-grow: 1;
+}
+
+/* Dark Software Preview */
+.preview-software-dark {
+    background: #090d16;
+    color: #f8fafc;
+    border-color: #1e293b;
+}
+.preview-software-dark .preview-nav {
+    background: #0c1220;
+    height: 14px;
+    border-radius: 3px;
+    margin-bottom: 6px;
+    border: 1px solid #1e293b;
+}
+.preview-software-dark .preview-card {
+    background: #101625;
+    border: 1px solid #1e293b;
+    border-radius: 4px;
+    padding: 6px;
+    flex-grow: 1;
+}
+
+/* Dark Dashboard Preview */
+.preview-dashboard-dark {
+    background: #090d16;
+    color: #38bdf8;
+    border-color: #1e293b;
+}
+.preview-dashboard-dark .preview-nav {
+    background: #0c1220;
+    height: 14px;
+    border-radius: 3px;
+    border-bottom: 2px solid #ed0007;
+    margin-bottom: 6px;
+}
+.preview-dashboard-dark .preview-cols {
+    display: flex;
+    gap: 4px;
+    flex-grow: 1;
+}
+.preview-dashboard-dark .preview-col {
+    background: #101625;
+    border: 1px solid #1e293b;
+    border-radius: 3px;
+    flex: 1;
+}
+
+/* Light Dashboard Preview */
+.preview-dashboard-light {
+    background: #f1f5f9;
+    color: #0284c7;
+    border-color: #cbd5e1;
+}
+.preview-dashboard-light .preview-nav {
+    background: #ffffff;
+    height: 14px;
+    border-radius: 3px;
+    border-bottom: 2px solid #ed0007;
+    margin-bottom: 6px;
+    border: 1px solid #e2e8f0;
+}
+.preview-dashboard-light .preview-cols {
+    display: flex;
+    gap: 4px;
+    flex-grow: 1;
+}
+.preview-dashboard-light .preview-col {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 3px;
+    flex: 1;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4 py-4">
+    <!-- Breadcrumb & Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small text-muted">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="text-decoration-none text-muted">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Settings</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                <i data-lucide="sliders" class="text-primary" style="width: 24px; height: 24px;"></i>
+                Display & Theme Settings
+            </h3>
+            <p class="text-muted small mb-0 mt-1">
+                Customize appearance preferences independently for the main software application and the 24/7 TV kiosk dashboard.
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('dashboard.kiosk') }}" target="_blank" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+                <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+                <span>Open Dashboard</span>
+            </a>
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+                <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+                <span>Back to Home</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Theme Settings Form -->
+    <form action="{{ url_for('main.settings') }}" method="POST" id="themeSettingsForm">
+        <div class="row g-4 mb-4">
+            
+            <!-- 1. Main Software Theme Settings -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm rounded-3 h-100 p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="p-2 rounded bg-primary-subtle text-primary d-inline-flex align-items-center">
+                                <i data-lucide="laptop" style="width: 20px; height: 20px;"></i>
+                            </span>
+                            <div>
+                                <h5 class="fw-bold mb-0">Main Software Theme</h5>
+                                <div class="text-muted small">Home, Fleet Tracking, Data Manager, and Detail Pages</div>
+                            </div>
+                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size: 0.75rem;">Independent</span>
+                    </div>
+
+                    <p class="small text-muted mb-3">
+                        Choose your default visual theme for operational desk workstations, search, data tables, and administration pages.
+                    </p>
+
+                    <div class="row g-3">
+                        <!-- Light Mode Option -->
+                        <div class="col-sm-6">
+                            <label class="theme-option-card {% if software_theme == 'light' %}selected{% endif %}" for="softwareThemeLight">
+                                <input class="theme-radio-input" type="radio" name="software_theme" id="softwareThemeLight" value="light" 
+                                       {% if software_theme == 'light' %}checked{% endif %}>
+                                
+                                <div class="theme-preview-box preview-software-light shadow-sm">
+                                    <div class="preview-nav"></div>
+                                    <div class="preview-card d-flex flex-column justify-content-center">
+                                        <div style="height: 6px; width: 60%; background: #0f172a; border-radius: 2px; margin-bottom: 4px;"></div>
+                                        <div style="height: 4px; width: 85%; background: #94a3b8; border-radius: 2px;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between mt-auto">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i data-lucide="sun" class="text-warning" style="width: 18px; height: 18px;"></i>
+                                        <span class="fw-bold">Light Mode</span>
+                                    </div>
+                                    <span class="badge bg-light text-dark border font-monospace">Default</span>
+                                </div>
+                                <div class="small text-muted mt-1" style="font-size: 0.78rem;">
+                                    Clean white surfaces with high contrast for daytime desk use.
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Dark Mode Option -->
+                        <div class="col-sm-6">
+                            <label class="theme-option-card {% if software_theme == 'dark' %}selected{% endif %}" for="softwareThemeDark">
+                                <input class="theme-radio-input" type="radio" name="software_theme" id="softwareThemeDark" value="dark" 
+                                       {% if software_theme == 'dark' %}checked{% endif %}>
+                                
+                                <div class="theme-preview-box preview-software-dark shadow-sm">
+                                    <div class="preview-nav"></div>
+                                    <div class="preview-card d-flex flex-column justify-content-center">
+                                        <div style="height: 6px; width: 60%; background: #f8fafc; border-radius: 2px; margin-bottom: 4px;"></div>
+                                        <div style="height: 4px; width: 85%; background: #64748b; border-radius: 2px;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between mt-auto">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i data-lucide="moon" class="text-primary" style="width: 18px; height: 18px;"></i>
+                                        <span class="fw-bold">Dark Mode</span>
+                                    </div>
+                                </div>
+                                <div class="small text-muted mt-1" style="font-size: 0.78rem;">
+                                    Deep slate surfaces reducing eye fatigue in dim lighting.
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Dashboard (24/7 Kiosk Screen) Theme Settings -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm rounded-3 h-100 p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="p-2 rounded bg-danger-subtle text-danger d-inline-flex align-items-center">
+                                <i data-lucide="tv" style="width: 20px; height: 20px;"></i>
+                            </span>
+                            <div>
+                                <h5 class="fw-bold mb-0">Dashboard Theme (24/7 Kiosk)</h5>
+                                <div class="text-muted small">Dedicated full-screen TV monitor view with live telemetry</div>
+                            </div>
+                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size: 0.75rem;">Independent</span>
+                    </div>
+
+                    <p class="small text-muted mb-3">
+                        Select the visual mode for large TV displays and wall kiosks in dispatch centers and logistics bays.
+                    </p>
+
+                    <div class="row g-3">
+                        <!-- Dark Mode Option (Default for TV) -->
+                        <div class="col-sm-6">
+                            <label class="theme-option-card {% if dashboard_theme == 'dark' %}selected{% endif %}" for="dashboardThemeDark">
+                                <input class="theme-radio-input" type="radio" name="dashboard_theme" id="dashboardThemeDark" value="dark" 
+                                       {% if dashboard_theme == 'dark' %}checked{% endif %}>
+                                
+                                <div class="theme-preview-box preview-dashboard-dark shadow-sm">
+                                    <div class="preview-nav"></div>
+                                    <div class="preview-cols">
+                                        <div class="preview-col p-1">
+                                            <div style="height: 4px; width: 80%; background: #38bdf8; border-radius: 2px;"></div>
+                                        </div>
+                                        <div class="preview-col p-1">
+                                            <div style="height: 4px; width: 60%; background: #f59e0b; border-radius: 2px;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between mt-auto">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i data-lucide="moon" class="text-info" style="width: 18px; height: 18px;"></i>
+                                        <span class="fw-bold">Dark TV</span>
+                                    </div>
+                                    <span class="badge bg-dark text-white border border-secondary font-monospace">Recommended</span>
+                                </div>
+                                <div class="small text-muted mt-1" style="font-size: 0.78rem;">
+                                    Cinema-grade low glare for wall displays and continuous 24/7 monitoring.
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Light Mode Option for TV -->
+                        <div class="col-sm-6">
+                            <label class="theme-option-card {% if dashboard_theme == 'light' %}selected{% endif %}" for="dashboardThemeLight">
+                                <input class="theme-radio-input" type="radio" name="dashboard_theme" id="dashboardThemeLight" value="light" 
+                                       {% if dashboard_theme == 'light' %}checked{% endif %}>
+                                
+                                <div class="theme-preview-box preview-dashboard-light shadow-sm">
+                                    <div class="preview-nav"></div>
+                                    <div class="preview-cols">
+                                        <div class="preview-col p-1">
+                                            <div style="height: 4px; width: 80%; background: #0284c7; border-radius: 2px;"></div>
+                                        </div>
+                                        <div class="preview-col p-1">
+                                            <div style="height: 4px; width: 60%; background: #d97706; border-radius: 2px;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between mt-auto">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i data-lucide="sun" class="text-warning" style="width: 18px; height: 18px;"></i>
+                                        <span class="fw-bold">Light TV</span>
+                                    </div>
+                                </div>
+                                <div class="small text-muted mt-1" style="font-size: 0.78rem;">
+                                    Bright crisp presentation for daylight meeting rooms and sunlit offices.
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Submit & Quick Action Bar -->
+        <div class="card border-0 shadow-sm rounded-3 p-3">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2 text-muted small">
+                    <i data-lucide="check-circle" class="text-success" style="width: 16px; height: 16px;"></i>
+                    <span>Preferences are saved in your browser and automatically synchronized across tabs.</span>
+                </div>
+                
+                <div class="d-flex gap-2 w-100 w-sm-auto justify-content-end">
+                    <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-1" id="resetDefaultsBtn">
+                        <i data-lucide="rotate-ccw" style="width: 15px; height: 15px;"></i>
+                        <span>Reset Defaults</span>
+                    </button>
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold d-inline-flex align-items-center gap-2 shadow-sm">
+                        <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                        <span>Save Preferences</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('themeSettingsForm');
+    const softwareRadios = document.querySelectorAll('input[name="software_theme"]');
+    const dashboardRadios = document.querySelectorAll('input[name="dashboard_theme"]');
+    const resetBtn = document.getElementById('resetDefaultsBtn');
+
+    // Helper to update visual selected card outline
+    function updateSelectedCardUI(radios) {
+        radios.forEach(radio => {
+            const card = radio.closest('.theme-option-card');
+            if (card) {
+                if (radio.checked) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            }
+        });
+    }
+
+    // Instant Live Preview & Local Storage for Software Theme
+    softwareRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            updateSelectedCardUI(softwareRadios);
+            const chosenTheme = this.value;
+            // Instantly apply to active document
+            document.documentElement.setAttribute('data-bs-theme', chosenTheme);
+            localStorage.setItem('software_theme', chosenTheme);
+            
+            // Sync to server via background API
+            fetch("{{ url_for('api.set_theme') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ software_theme: chosenTheme })
+            }).catch(e => console.warn('Theme sync error', e));
+        });
+    });
+
+    // Local Storage & background sync for Dashboard Theme
+    dashboardRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            updateSelectedCardUI(dashboardRadios);
+            const chosenTheme = this.value;
+            localStorage.setItem('dashboard_theme', chosenTheme);
+            
+            // Sync to server via background API
+            fetch("{{ url_for('api.set_theme') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dashboard_theme: chosenTheme })
+            }).catch(e => console.warn('Dashboard theme sync error', e));
+        });
+    });
+
+    // Reset Defaults Handler
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            const softLight = document.getElementById('softwareThemeLight');
+            const dashDark = document.getElementById('dashboardThemeDark');
+            if (softLight) {
+                softLight.checked = true;
+                softLight.dispatchEvent(new Event('change'));
+            }
+            if (dashDark) {
+                dashDark.checked = true;
+                dashDark.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
+    // Refresh icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+});
+</script>
+{% endblock %}
